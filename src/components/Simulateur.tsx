@@ -6,6 +6,8 @@ import { DEFAULTS, avec, course, seuilSur, tournee, type Ligne, type Saisie } fr
 import { eur, eur2, nf0, nf1, signe } from "@/lib/format";
 import { IconeCopier, IconeRetablir } from "@/lib/icones";
 import { COUTS, JOURS, type DefChamp, type Profil } from "@/lib/profil";
+import { classe, verdict } from "@/lib/simulations";
+import { FormulaireEnregistrement } from "./FormulaireEnregistrement";
 import { demarrerCarte, type Etat } from "./carte";
 import { Marque } from "./Marque";
 import { BoutonDeconnexion } from "./BoutonDeconnexion";
@@ -53,14 +55,11 @@ type Affichage = {
   scene: [number, number, boolean]; sens: { prix: string[]; lignes: { points: string; cellules: Cellule[] }[] } | null;
 };
 
-const classe = (marge: number, taux: number): Etat => (marge < 0 ? "bad" : taux < 0.15 ? "warn" : "ok");
-
 function calculerTournee(s: Saisie): Affichage {
   const r = tournee(s);
   const pMin = seuilSur(s, "prixPoint", 60), nMin = seuilSur(s, "points", 600);
   const efface = s.prixPoint > 0 ? Math.ceil(s.penalite / s.prixPoint) : 0;
-  const cls = classe(r.marge, r.taux);
-  const pill = cls === "bad" ? "À perte" : cls === "warn" ? "Trop juste" : "Rentable";
+  const { cls, pill } = verdict("tournee", s);
   let texte = cls === "bad"
     ? "Cette tournée coûte plus qu'elle ne rapporte. Il manque " + eur(-r.marge) + " par mois pour atteindre l'équilibre."
     : cls === "warn"
@@ -109,19 +108,18 @@ function calculerTournee(s: Saisie): Affichage {
 
 function calculerCourse(s: Saisie): Affichage {
   const r = course(s);
-  let verdict: Verdict;
+  let v: Verdict;
   if (r.margeOffre !== null) {
     const t = r.margeOffre / s.cOffre;
-    const cls = classe(r.margeOffre, t);
-    const pill = cls === "bad" ? "À refuser" : cls === "warn" ? "À négocier" : "À accepter";
-    verdict = { cls, pill, valeur: r.margeOffre, signe: true, unite: "de marge au prix proposé",
+    const { cls, pill } = verdict("course", s);
+    v = { cls, pill, valeur: r.margeOffre, signe: true, unite: "de marge au prix proposé",
       texte: "Le client propose " + eur(s.cOffre) + ". Le prix plancher est de " + eur(r.plancher) + " et le prix conseillé de " + eur(r.conseille) + ".", taux: t };
   } else {
-    verdict = { cls: "ok", pill: "Prix conseillé", valeur: r.conseille, signe: false, unite: "hors taxe",
+    v = { cls: "ok", pill: "Prix conseillé", valeur: r.conseille, signe: false, unite: "hors taxe",
       texte: "En dessous de " + eur(r.plancher) + ", la course se fait à perte.", taux: null };
   }
   return {
-    verdict,
+    verdict: v,
     chips: [[nf0(s.cKm) + " km", "aller et retour"], [nf1(s.cHeures) + " h", "temps passé"], [eur2(r.auKm), "conseillé au km"]],
     legende: "Illustration d'une course aller et retour.",
     tuiles: [
@@ -244,6 +242,7 @@ export function Simulateur({ entreprise, admin, profil }: { entreprise: string; 
     <div className="app">
       <div className="compte">
         <span>{entreprise}</span>
+        <Link className="lien" href="/simulations">Mes simulations</Link>
         <Link className="lien" href="/profil">Mes coûts</Link>
         {admin && <Link className="lien" href="/admin">Administration</Link>}
         <BoutonDeconnexion />
@@ -335,6 +334,7 @@ export function Simulateur({ entreprise, admin, profil }: { entreprise: string; 
             <button type="button" onClick={() => { setS(depart); setMessage("Valeurs de départ rétablies."); }}><IconeRetablir />Revenir aux valeurs de départ</button>
             <span className="note" role="status">{message}</span>
           </div>
+          <FormulaireEnregistrement type={vue} saisie={s} />
         </div>
       </div>
     </div>
