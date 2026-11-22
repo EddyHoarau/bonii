@@ -6,6 +6,7 @@ import { Simulateur } from "@/components/Simulateur";
 import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
 import { CLES_PROFIL, type Profil } from "@/lib/profil";
+import { aujourdhuiParis } from "@/lib/echeances";
 
 export default function Accueil() {
   return (
@@ -48,6 +49,11 @@ async function EspaceDirigeant() {
   }
 
   // RLS : le dirigeant ne lit que le profil de son entreprise. Sans profil, le simulateur garde les valeurs d'exemple.
-  const { data: profil } = await supabase.from("profils_couts").select(CLES_PROFIL.join(", ")).maybeSingle<Profil>();
-  return <Simulateur entreprise={entreprise} admin={admin} profil={profil ?? {}} />;
+  const [{ data: profil }, { data: carnet }, { count: aRelancer }] = await Promise.all([
+    supabase.from("profils_couts").select(CLES_PROFIL.join(", ")).maybeSingle<Profil>(),
+    supabase.from("donneurs_ordre").select("nom").order("nom").returns<{ nom: string }[]>(),
+    // Relances prévues jusqu'à aujourd'hui et pas encore faites : le nombre s'affiche à côté de « Mon carnet ».
+    supabase.from("relances").select("id", { count: "exact", head: true }).is("faite_le", null).lte("prevue_le", aujourdhuiParis()),
+  ]);
+  return <Simulateur entreprise={entreprise} admin={admin} profil={profil ?? {}} donneurs={(carnet ?? []).map((d) => d.nom)} aRelancer={aRelancer ?? 0} />;
 }

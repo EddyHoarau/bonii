@@ -8,7 +8,7 @@ import { STATUTS, type TypeSimulation } from "@/lib/simulations";
 import { enregistrerSimulation } from "@/app/simulations/actions";
 
 /** Fige le calcul affiché : toutes les valeurs, coûts compris, telles qu'à cet instant. */
-export function FormulaireEnregistrement({ type, saisie }: { type: TypeSimulation; saisie: Saisie }) {
+export function FormulaireEnregistrement({ type, saisie, donneurs }: { type: TypeSimulation; saisie: Saisie; donneurs: string[] }) {
   const [etat, action, enCours] = useActionState(enregistrerSimulation, null);
   return (
     <section className="panel pad">
@@ -24,7 +24,9 @@ export function FormulaireEnregistrement({ type, saisie }: { type: TypeSimulatio
           </div>
           <div className="field">
             <label htmlFor="sim-donneur">Donneur d&apos;ordre</label>
-            <div className="box"><input id="sim-donneur" name="donneur" maxLength={200} /></div>
+            <div className="box"><input id="sim-donneur" name="donneur" maxLength={200} list="sim-carnet" autoComplete="off" /></div>
+            <datalist id="sim-carnet">{donneurs.map((n) => <option key={n} value={n} />)}</datalist>
+            <span className="hint">Relié à votre carnet</span>
           </div>
           <div className="field">
             <label htmlFor="sim-date">Date</label>

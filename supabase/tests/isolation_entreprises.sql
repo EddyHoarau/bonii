@@ -9,6 +9,7 @@ declare
   b uuid := gen_random_uuid();  -- dirigeant de l'entreprise B
   c uuid := gen_random_uuid();  -- chauffeur de l'entreprise A
   ea uuid; eb uuid; n int;
+  da uuid; db uuid; sa uuid;  -- donneurs d'ordre de A et de B, simulation de A
 begin
   insert into auth.users (id, email, aud, role) values
     (a, 'test-a@bonii.invalid', 'authenticated', 'authenticated'),
@@ -21,6 +22,12 @@ begin
   insert into public.simulations (entreprise_id, type, nom, saisie, cree_par) values
     (ea, 'tournee', 'Simulation A', '{}', a),
     (eb, 'tournee', 'Simulation B', '{}', b);
+  select id into sa from public.simulations where entreprise_id = ea;
+  -- Lot 3 : un donneur d'ordre et une relance par entreprise.
+  insert into public.donneurs_ordre (entreprise_id, nom) values (ea, 'Donneur A') returning id into da;
+  insert into public.donneurs_ordre (entreprise_id, nom) values (eb, 'Donneur B') returning id into db;
+  insert into public.relances (entreprise_id, donneur_ordre_id, prevue_le, objet) values
+    (ea, da, current_date, 'Relance A'), (eb, db, current_date, 'Relance B');
 
   -- 1. Dirigeant A : ne voit que son entreprise.
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
@@ -56,6 +63,41 @@ begin
   exception when insufficient_privilege then null;
   end;
 
+  -- Lot 3 : A ne voit que son carnet et ne peut rien accrocher à celui de B.
+  select count(*) into n from public.donneurs_ordre; if n <> 1 then raise exception 'ÉCHEC : A voit % donneurs d''ordre', n; end if;
+  select count(*) into n from public.relances;       if n <> 1 then raise exception 'ÉCHEC : A voit % relances', n; end if;
+  begin
+    insert into public.donneurs_ordre (entreprise_id, nom) values (eb, 'Intrus');
+    raise exception 'ÉCHEC : A a créé un donneur d''ordre chez B';
+  exception when insufficient_privilege then null;
+  end;
+  update public.donneurs_ordre set nom = 'Modifié' where entreprise_id = eb; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : A a modifié le carnet de B'; end if;
+  delete from public.relances where entreprise_id = eb; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : A a supprimé une relance de B'; end if;
+  begin
+    insert into public.relances (entreprise_id, donneur_ordre_id, prevue_le, objet) values (ea, db, current_date, 'Intrus');
+    raise exception 'ÉCHEC : A a créé une relance vers un donneur d''ordre de B';
+  exception when foreign_key_violation then null;
+  end;
+  begin
+    update public.simulations set donneur_ordre_id = db where id = sa;
+    raise exception 'ÉCHEC : A a relié sa simulation à un donneur d''ordre de B';
+  exception when foreign_key_violation then null;
+  end;
+  begin
+    insert into public.donneurs_ordre (entreprise_id, nom) values (ea, 'DONNEUR A');
+    raise exception 'ÉCHEC : le même nom est entré deux fois dans le carnet de A';
+  exception when unique_violation then null;
+  end;
+  -- Supprimer un donneur d'ordre efface ses relances, pas la simulation : seul le lien tombe.
+  update public.simulations set donneur_ordre_id = da where id = sa;
+  delete from public.donneurs_ordre where id = da;
+  select count(*) into n from public.relances; if n <> 0 then raise exception 'ÉCHEC : la relance a survécu à son donneur d''ordre'; end if;
+  select count(*) into n from public.simulations where id = sa and donneur_ordre_id is null and entreprise_id = ea;
+  if n <> 1 then raise exception 'ÉCHEC : la simulation n''a pas survécu à la suppression du donneur d''ordre'; end if;
+  insert into public.donneurs_ordre (entreprise_id, nom) values (ea, 'Donneur A') returning id into da;
+
   -- A travaille normalement chez lui.
   update public.profils_couts set salaire = 3100 where entreprise_id = ea; get diagnostics n = row_count;
   if n <> 1 then raise exception 'ÉCHEC : A ne peut pas modifier ses propres coûts'; end if;
@@ -69,6 +111,8 @@ begin
   select count(*) into n from public.entreprises;   if n <> 1 then raise exception 'ÉCHEC : le chauffeur voit % entreprises', n; end if;
   select count(*) into n from public.profils_couts; if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les coûts'; end if;
   select count(*) into n from public.simulations;   if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les simulations'; end if;
+  select count(*) into n from public.donneurs_ordre; if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit le carnet'; end if;
+  select count(*) into n from public.relances;       if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les relances'; end if;
   execute 'reset role';
 
   -- 3. Visiteur non connecté : aucun accès.
@@ -77,6 +121,11 @@ begin
   begin
     select count(*) into n from public.simulations;
     raise exception 'ÉCHEC : un visiteur non connecté lit les simulations';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    select count(*) into n from public.donneurs_ordre;
+    raise exception 'ÉCHEC : un visiteur non connecté lit le carnet';
   exception when insufficient_privilege then null;
   end;
   begin

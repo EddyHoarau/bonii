@@ -221,7 +221,7 @@ function Section({ titre, sous, champs, s, changer }: { titre: string; sous: str
   );
 }
 
-export function Simulateur({ entreprise, admin, profil }: { entreprise: string; admin: boolean; profil: Profil }) {
+export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer }: { entreprise: string; admin: boolean; profil: Profil; donneurs: string[]; aRelancer: number }) {
   const vue = useVue();
   // Point de départ : les valeurs d'exemple, remplacées par le profil de coûts enregistré.
   const [depart] = useState<Saisie>(() => ({ ...DEFAULTS, ...profil }));
@@ -243,6 +243,7 @@ export function Simulateur({ entreprise, admin, profil }: { entreprise: string; 
       <div className="compte">
         <span>{entreprise}</span>
         <Link className="lien" href="/simulations">Mes simulations</Link>
+        <Link className="lien" href="/carnet">Mon carnet{aRelancer > 0 && <b title="Relances à faire">{aRelancer}</b>}</Link>
         <Link className="lien" href="/profil">Mes coûts</Link>
         {admin && <Link className="lien" href="/admin">Administration</Link>}
         <BoutonDeconnexion />
@@ -334,7 +335,7 @@ export function Simulateur({ entreprise, admin, profil }: { entreprise: string; 
             <button type="button" onClick={() => { setS(depart); setMessage("Valeurs de départ rétablies."); }}><IconeRetablir />Revenir aux valeurs de départ</button>
             <span className="note" role="status">{message}</span>
           </div>
-          <FormulaireEnregistrement type={vue} saisie={s} />
+          <FormulaireEnregistrement type={vue} saisie={s} donneurs={donneurs} />
         </div>
       </div>
     </div>
