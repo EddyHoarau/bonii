@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DEFAULTS, avec, course, seuilSur, tournee, type Ligne, type Saisie } from "@/moteur";
 import { eur, eur2, nf0, nf1, signe } from "@/lib/format";
 import { IconeCopier, IconeRetablir } from "@/lib/icones";
 import { demarrerCarte, type Etat } from "./carte";
 import { Marque } from "./Marque";
+import { BoutonDeconnexion } from "./BoutonDeconnexion";
 
 type Cle = keyof Saisie;
 type Vue = "tournee" | "course";
@@ -230,7 +232,7 @@ function Section({ titre, sous, champs, s, changer }: { titre: string; sous: str
   );
 }
 
-export function Simulateur() {
+export function Simulateur({ entreprise, admin }: { entreprise: string; admin: boolean }) {
   const vue = useVue();
   const [s, setS] = useState<Saisie>(DEFAULTS);
   const [message, setMessage] = useState("");
@@ -247,6 +249,11 @@ export function Simulateur() {
 
   return (
     <div className="app">
+      <div className="compte">
+        <span>{entreprise}</span>
+        {admin && <Link className="lien" href="/admin">Administration</Link>}
+        <BoutonDeconnexion />
+      </div>
       <header className="top">
         <Marque />
         <nav className="onglets" aria-label="Type de chiffrage">
