@@ -7,6 +7,7 @@ import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
 import { CLES_PROFIL, type Profil } from "@/lib/profil";
 import { aujourdhuiParis } from "@/lib/echeances";
+import { CLES_COUTS_VEHICULE, ECHEANCES, echeancesProches, type CleCout, type CleEcheance } from "@/lib/vehicules";
 
 export default function Accueil() {
   return (
@@ -49,11 +50,16 @@ async function EspaceDirigeant() {
   }
 
   // RLS : le dirigeant ne lit que le profil de son entreprise. Sans profil, le simulateur garde les valeurs d'exemple.
-  const [{ data: profil }, { data: carnet }, { count: aRelancer }] = await Promise.all([
+  const aujourdhui = aujourdhuiParis();
+  type LigneVehicule = { id: string; nom: string } & Record<CleCout, number | null> & Record<CleEcheance, string | null>;
+  const [{ data: profil }, { data: carnet }, { count: aRelancer }, { data: vehicules }] = await Promise.all([
     supabase.from("profils_couts").select(CLES_PROFIL.join(", ")).maybeSingle<Profil>(),
     supabase.from("donneurs_ordre").select("nom").order("nom").returns<{ nom: string }[]>(),
     // Relances prévues jusqu'à aujourd'hui et pas encore faites : le nombre s'affiche à côté de « Mon carnet ».
-    supabase.from("relances").select("id", { count: "exact", head: true }).is("faite_le", null).lte("prevue_le", aujourdhuiParis()),
+    supabase.from("relances").select("id", { count: "exact", head: true }).is("faite_le", null).lte("prevue_le", aujourdhui),
+    supabase.from("vehicules").select(["id", "nom", ...CLES_COUTS_VEHICULE, ...ECHEANCES.map((e) => e[0])].join(", ")).order("nom").returns<LigneVehicule[]>(),
   ]);
-  return <Simulateur entreprise={entreprise} admin={admin} profil={profil ?? {}} donneurs={(carnet ?? []).map((d) => d.nom)} aRelancer={aRelancer ?? 0} />;
+  return <Simulateur entreprise={entreprise} admin={admin} profil={profil ?? {}} donneurs={(carnet ?? []).map((d) => d.nom)} aRelancer={aRelancer ?? 0}
+    vehicules={(vehicules ?? []).map(({ id, nom, conso, vehicule, assurance, entretien }) => ({ id, nom, conso, vehicule, assurance, entretien }))}
+    echeances={echeancesProches(vehicules ?? [], aujourdhui)} />;
 }

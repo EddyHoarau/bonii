@@ -7,12 +7,14 @@ import { eur, eur2, nf0, nf1, signe } from "@/lib/format";
 import { IconeCopier, IconeRetablir } from "@/lib/icones";
 import { COUTS, JOURS, type DefChamp, type Profil } from "@/lib/profil";
 import { classe, verdict } from "@/lib/simulations";
+import { CLES_COUTS_VEHICULE, coutsDuVehicule, type CleCout } from "@/lib/vehicules";
 import { FormulaireEnregistrement } from "./FormulaireEnregistrement";
 import { demarrerCarte, type Etat } from "./carte";
 import { Marque } from "./Marque";
 import { BoutonDeconnexion } from "./BoutonDeconnexion";
 
 type Cle = keyof Saisie;
+export type VehiculeChoix = { id: string; nom: string } & Record<CleCout, number | null>;
 type Vue = "tournee" | "course";
 
 const CHAMPS: Record<"ao" | "paie" | "course" | "cout", DefChamp[]> = {
@@ -211,22 +213,33 @@ function Champ({ def, valeur, changer }: { def: DefChamp; valeur: number; change
   );
 }
 
-function Section({ titre, sous, champs, s, changer }: { titre: string; sous: string; champs: DefChamp[]; s: Saisie; changer: (k: Cle, v: number) => void }) {
+function Section({ titre, sous, champs, s, changer, children }: { titre: string; sous: string; champs: DefChamp[]; s: Saisie; changer: (k: Cle, v: number) => void; children?: React.ReactNode }) {
   return (
     <section className="panel pad">
       <h2>{titre}</h2>
       <p className="sub">{sous}</p>
+      {children}
       <div className="fields">{champs.map((d) => <Champ key={d[0]} def={d} valeur={s[d[0]]} changer={changer} />)}</div>
     </section>
   );
 }
 
-export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer }: { entreprise: string; admin: boolean; profil: Profil; donneurs: string[]; aRelancer: number }) {
+export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, vehicules, echeances }: {
+  entreprise: string; admin: boolean; profil: Profil; donneurs: string[]; aRelancer: number;
+  vehicules: VehiculeChoix[]; echeances: number;
+}) {
   const vue = useVue();
   // Point de départ : les valeurs d'exemple, remplacées par le profil de coûts enregistré.
   const [depart] = useState<Saisie>(() => ({ ...DEFAULTS, ...profil }));
   const [s, setS] = useState<Saisie>(depart);
   const [message, setMessage] = useState("");
+  const [vehiculeId, setVehiculeId] = useState("");
+  // Choisir un véhicule pose ses coûts par-dessus ceux de « Mes coûts » ; les coûts qu'il ne renseigne pas reviennent au profil.
+  const choisirVehicule = (id: string) => {
+    setVehiculeId(id);
+    const profilVehicule = Object.fromEntries(CLES_COUTS_VEHICULE.map((k) => [k, depart[k]]));
+    setS((p) => ({ ...p, ...profilVehicule, ...coutsDuVehicule(vehicules.find((x) => x.id === id) ?? {}) }));
+  };
   const changer = (k: Cle, v: number) => setS((p) => ({ ...p, [k]: Number.isFinite(v) && v >= 0 ? v : 0 }));
   const a = vue === "course" ? calculerCourse(s) : calculerTournee(s);
   const v = a.verdict;
@@ -244,6 +257,7 @@ export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer }: {
         <span>{entreprise}</span>
         <Link className="lien" href="/simulations">Mes simulations</Link>
         <Link className="lien" href="/carnet">Mon carnet{aRelancer > 0 && <b title="Relances à faire">{aRelancer}</b>}</Link>
+        <Link className="lien" href="/vehicules">Mes véhicules{echeances > 0 && <b title="Échéances proches ou dépassées">{echeances}</b>}</Link>
         <Link className="lien" href="/profil">Mes coûts</Link>
         {admin && <Link className="lien" href="/admin">Administration</Link>}
         <BoutonDeconnexion />
@@ -300,7 +314,19 @@ export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer }: {
           ) : (
             <Section titre="La course demandée" sous="Une livraison ponctuelle à chiffrer." champs={CHAMPS.course} s={s} changer={changer} />
           )}
-          <Section titre="Ce que ça coûte" sous="Repris de « Mes coûts ». Les changer ici ne vaut que pour ce calcul." champs={CHAMPS.cout} s={s} changer={changer} />
+          <Section titre="Ce que ça coûte" sous="Repris de « Mes coûts ». Les changer ici ne vaut que pour ce calcul." champs={CHAMPS.cout} s={s} changer={changer}>
+            {vehicules.length > 0 && (
+              <div className="field choix-vehicule">
+                <label htmlFor="in-vehicule">Véhicule</label>
+                <div className="box">
+                  <select id="in-vehicule" value={vehiculeId} onChange={(e) => choisirVehicule(e.target.value)}>
+                    <option value="">Coûts habituels (« Mes coûts »)</option>
+                    {vehicules.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </Section>
         </div>
         <div className="stack">
           <section className="panel pad">
@@ -332,7 +358,7 @@ export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer }: {
           )}
           <div className="actions">
             <button type="button" onClick={copier}><IconeCopier />Copier le résumé</button>
-            <button type="button" onClick={() => { setS(depart); setMessage("Valeurs de départ rétablies."); }}><IconeRetablir />Revenir aux valeurs de départ</button>
+            <button type="button" onClick={() => { setS(depart); setVehiculeId(""); setMessage("Valeurs de départ rétablies."); }}><IconeRetablir />Revenir aux valeurs de départ</button>
             <span className="note" role="status">{message}</span>
           </div>
           <FormulaireEnregistrement type={vue} saisie={s} donneurs={donneurs} />

@@ -39,6 +39,18 @@ s'affichent en nombre à côté de « Mon carnet ». Le nom tapé dans une simul
 au carnet (un nom nouveau y entre comme prospect) ; la simulation garde aussi le nom tel
 qu'il a été tapé. Migration : `0004_carnet.sql`.
 
+## Lot 4 (construit, sauf le carburant) : véhicules et rappels
+
+Véhicules (`/vehicules`, fiche sur `/vehicules/fiche`) réservés au dirigeant : prochaines
+échéances du contrôle technique, de l'assurance et des pneus, à l'orange 30 jours avant et
+au rouge une fois dépassées ; leur nombre s'affiche à côté de « Mes véhicules ». Chaque
+véhicule peut porter ses propres coûts (consommation, loyer, assurance, entretien) : dans
+le simulateur, le choisir pose ces coûts par-dessus « Mes coûts ». Migration : `0005_vehicules.sql`.
+
+Reste à faire : le prix du carburant autour d'un trajet à partir des données publiques
+(il dépend des trajets du lot 2), et l'envoi des rappels par e-mail (aucun service d'envoi
+n'est branché ; les rappels ne s'affichent que dans l'application).
+
 ## Lots suivants : prévus, pas construits
 
 Chaque table future porte `entreprise_id` et suit les mêmes règles RLS.
@@ -47,7 +59,5 @@ Chaque table future porte `entreprise_id` et suit les mêmes règles RLS.
   lue par IA, avec écran de vérification. Ordre de passage et créneaux calculés par un
   moteur d'optimisation existant, jamais par un algorithme maison. Les adresses des
   destinataires sont des données personnelles : conservation minimale et purge automatique.
-- **Lot 4, véhicules et rappels.** Contrôle technique, pneus, assurance ; profil de coûts
-  par véhicule ; prix du carburant autour d'un trajet à partir des données publiques.
 - **Lot 5, accès chauffeur.** Le rôle « chauffeur » existe dès le lot 1 dans la table des
   membres ; au lot 5 il ne verra que sa tournée, ses notes de frais et ses messages.

@@ -28,6 +28,8 @@ begin
   insert into public.donneurs_ordre (entreprise_id, nom) values (eb, 'Donneur B') returning id into db;
   insert into public.relances (entreprise_id, donneur_ordre_id, prevue_le, objet) values
     (ea, da, current_date, 'Relance A'), (eb, db, current_date, 'Relance B');
+  -- Lot 4 : un véhicule par entreprise.
+  insert into public.vehicules (entreprise_id, nom) values (ea, 'Véhicule A'), (eb, 'Véhicule B');
 
   -- 1. Dirigeant A : ne voit que son entreprise.
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
@@ -98,6 +100,25 @@ begin
   if n <> 1 then raise exception 'ÉCHEC : la simulation n''a pas survécu à la suppression du donneur d''ordre'; end if;
   insert into public.donneurs_ordre (entreprise_id, nom) values (ea, 'Donneur A') returning id into da;
 
+  -- Lot 4 : A ne voit et ne touche que ses véhicules.
+  select count(*) into n from public.vehicules; if n <> 1 then raise exception 'ÉCHEC : A voit % véhicules', n; end if;
+  begin
+    insert into public.vehicules (entreprise_id, nom) values (eb, 'Intrus');
+    raise exception 'ÉCHEC : A a créé un véhicule chez B';
+  exception when insufficient_privilege then null;
+  end;
+  update public.vehicules set nom = 'Modifié' where entreprise_id = eb; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : A a modifié un véhicule de B'; end if;
+  delete from public.vehicules where entreprise_id = eb; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : A a supprimé un véhicule de B'; end if;
+  begin
+    update public.vehicules set entreprise_id = eb where entreprise_id = ea;
+    raise exception 'ÉCHEC : A a déplacé son véhicule chez B';
+  exception when insufficient_privilege then null;
+  end;
+  update public.vehicules set conso = 9 where entreprise_id = ea; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'ÉCHEC : A ne peut pas modifier son propre véhicule'; end if;
+
   -- A travaille normalement chez lui.
   update public.profils_couts set salaire = 3100 where entreprise_id = ea; get diagnostics n = row_count;
   if n <> 1 then raise exception 'ÉCHEC : A ne peut pas modifier ses propres coûts'; end if;
@@ -113,6 +134,7 @@ begin
   select count(*) into n from public.simulations;   if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les simulations'; end if;
   select count(*) into n from public.donneurs_ordre; if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit le carnet'; end if;
   select count(*) into n from public.relances;       if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les relances'; end if;
+  select count(*) into n from public.vehicules;      if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les véhicules'; end if;
   execute 'reset role';
 
   -- 3. Visiteur non connecté : aucun accès.
@@ -126,6 +148,11 @@ begin
   begin
     select count(*) into n from public.donneurs_ordre;
     raise exception 'ÉCHEC : un visiteur non connecté lit le carnet';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    select count(*) into n from public.vehicules;
+    raise exception 'ÉCHEC : un visiteur non connecté lit les véhicules';
   exception when insufficient_privilege then null;
   end;
   begin
