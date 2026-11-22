@@ -10,7 +10,7 @@ Savoir si une tournée rapporte, avant de la signer.
 
 - Tables et règles de sécurité : `supabase/migrations/`, à appliquer dans l'ordre
   (éditeur SQL du tableau de bord Supabase). Le carnet (lot 3) a besoin de `0004`,
-  les véhicules (lot 4) de `0005` : les appliquer avant de mettre ce code en ligne,
+  les véhicules (lot 4) de `0005`, les tournées (lot 2) de `0006` : les appliquer avant de mettre ce code en ligne,
   sinon l'enregistrement d'une simulation échoue.
 - Test d'isolement entre entreprises : coller `supabase/tests/isolation_entreprises.sql`
   dans l'éditeur SQL et lancer. Le résultat attendu est le message

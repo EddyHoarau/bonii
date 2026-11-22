@@ -256,6 +256,7 @@ export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, veh
       <div className="compte">
         <span>{entreprise}</span>
         <Link className="lien" href="/simulations">Mes simulations</Link>
+        <Link className="lien" href="/tournees">Mes tournées</Link>
         <Link className="lien" href="/carnet">Mon carnet{aRelancer > 0 && <b title="Relances à faire">{aRelancer}</b>}</Link>
         <Link className="lien" href="/vehicules">Mes véhicules{echeances > 0 && <b title="Échéances proches ou dépassées">{echeances}</b>}</Link>
         <Link className="lien" href="/profil">Mes coûts</Link>

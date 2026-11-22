@@ -9,6 +9,7 @@ declare
   b uuid := gen_random_uuid();  -- dirigeant de l'entreprise B
   c uuid := gen_random_uuid();  -- chauffeur de l'entreprise A
   ea uuid; eb uuid; n int;
+  ta uuid; tb uuid;  -- tournées de A et de B
   da uuid; db uuid; sa uuid;  -- donneurs d'ordre de A et de B, simulation de A
 begin
   insert into auth.users (id, email, aud, role) values
@@ -30,6 +31,20 @@ begin
     (ea, da, current_date, 'Relance A'), (eb, db, current_date, 'Relance B');
   -- Lot 4 : un véhicule par entreprise.
   insert into public.vehicules (entreprise_id, nom) values (ea, 'Véhicule A'), (eb, 'Véhicule B');
+  -- Lot 2 : une tournée et un arrêt par entreprise, plus une vieille tournée chez A pour la purge.
+  insert into public.tournees (entreprise_id, nom, depart, depart_lat, depart_lon) values (ea, 'Tournée A', 'Dépôt A', 48.69, 6.18) returning id into ta;
+  insert into public.tournees (entreprise_id, nom, depart, depart_lat, depart_lon) values (eb, 'Tournée B', 'Dépôt B', 49.12, 6.17) returning id into tb;
+  insert into public.arrets (entreprise_id, tournee_id, adresse) values (ea, ta, 'Adresse A'), (eb, tb, 'Adresse B');
+  insert into public.tournees (entreprise_id, nom, depart, depart_lat, depart_lon, jour) values
+    (ea, 'Vieille tournée', 'Dépôt A', 48.69, 6.18, current_date - 8),
+    (ea, 'Tournée de la semaine', 'Dépôt A', 48.69, 6.18, current_date - 7);
+  insert into public.arrets (entreprise_id, tournee_id, adresse)
+    select ea, id, 'Vieille adresse' from public.tournees where nom = 'Vieille tournée' and entreprise_id = ea;
+  -- La purge efface la tournée de 8 jours et son arrêt, pas celle de 7 jours.
+  select prive.purger_tournees() into n; if n <> 1 then raise exception 'ÉCHEC : la purge a effacé % tournées (attendu 1)', n; end if;
+  select count(*) into n from public.arrets where adresse = 'Vieille adresse'; if n <> 0 then raise exception 'ÉCHEC : l''adresse d''une tournée purgée est restée'; end if;
+  select count(*) into n from public.tournees where entreprise_id = ea; if n <> 2 then raise exception 'ÉCHEC : la purge a touché une tournée récente'; end if;
+  delete from public.tournees where nom = 'Tournée de la semaine' and entreprise_id = ea;
 
   -- 1. Dirigeant A : ne voit que son entreprise.
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
@@ -119,6 +134,31 @@ begin
   update public.vehicules set conso = 9 where entreprise_id = ea; get diagnostics n = row_count;
   if n <> 1 then raise exception 'ÉCHEC : A ne peut pas modifier son propre véhicule'; end if;
 
+  -- Lot 2 : A ne voit et ne touche que ses tournées et ses arrêts.
+  select count(*) into n from public.tournees; if n <> 1 then raise exception 'ÉCHEC : A voit % tournées', n; end if;
+  select count(*) into n from public.arrets;   if n <> 1 then raise exception 'ÉCHEC : A voit % arrêts', n; end if;
+  begin
+    insert into public.tournees (entreprise_id, nom, depart, depart_lat, depart_lon) values (eb, 'Intrus', 'x', 0, 0);
+    raise exception 'ÉCHEC : A a créé une tournée chez B';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.arrets (entreprise_id, tournee_id, adresse) values (ea, tb, 'Intrus');
+    raise exception 'ÉCHEC : A a ajouté un arrêt à une tournée de B';
+  exception when foreign_key_violation then null;
+  end;
+  update public.arrets set adresse = 'Modifié' where entreprise_id = eb; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : A a modifié un arrêt de B'; end if;
+  delete from public.tournees where entreprise_id = eb; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : A a supprimé une tournée de B'; end if;
+  begin
+    perform prive.purger_tournees();
+    raise exception 'ÉCHEC : un dirigeant peut lancer la purge générale';
+  exception when insufficient_privilege then null;
+  end;
+  update public.arrets set ordre = 2 where tournee_id = ta; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'ÉCHEC : A ne peut pas modifier son propre arrêt'; end if;
+
   -- A travaille normalement chez lui.
   update public.profils_couts set salaire = 3100 where entreprise_id = ea; get diagnostics n = row_count;
   if n <> 1 then raise exception 'ÉCHEC : A ne peut pas modifier ses propres coûts'; end if;
@@ -135,6 +175,8 @@ begin
   select count(*) into n from public.donneurs_ordre; if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit le carnet'; end if;
   select count(*) into n from public.relances;       if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les relances'; end if;
   select count(*) into n from public.vehicules;      if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les véhicules'; end if;
+  select count(*) into n from public.tournees;       if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les tournées'; end if;
+  select count(*) into n from public.arrets;         if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les arrêts'; end if;
   execute 'reset role';
 
   -- 3. Visiteur non connecté : aucun accès.
@@ -148,6 +190,11 @@ begin
   begin
     select count(*) into n from public.donneurs_ordre;
     raise exception 'ÉCHEC : un visiteur non connecté lit le carnet';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    select count(*) into n from public.arrets;
+    raise exception 'ÉCHEC : un visiteur non connecté lit les arrêts';
   exception when insufficient_privilege then null;
   end;
   begin
