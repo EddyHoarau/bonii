@@ -5,18 +5,17 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DEFAULTS, avec, course, seuilSur, tournee, type Ligne, type Saisie } from "@/moteur";
 import { eur, eur2, nf0, nf1, signe } from "@/lib/format";
 import { IconeCopier, IconeRetablir } from "@/lib/icones";
+import { COUTS, JOURS, type DefChamp, type Profil } from "@/lib/profil";
 import { demarrerCarte, type Etat } from "./carte";
 import { Marque } from "./Marque";
 import { BoutonDeconnexion } from "./BoutonDeconnexion";
 
 type Cle = keyof Saisie;
 type Vue = "tournee" | "course";
-// [clé, libellé, unité, pas, aide]
-type DefChamp = [Cle, string, string, number, string?];
 
 const CHAMPS: Record<"ao" | "paie" | "course" | "cout", DefChamp[]> = {
   ao: [
-    ["jours", "Jours travaillés par mois", "jours", 1],
+    JOURS,
     ["points", "Points à livrer par jour", "points", 1],
     ["km", "Kilomètres par jour", "km", 5],
   ],
@@ -37,15 +36,7 @@ const CHAMPS: Record<"ao" | "paie" | "course" | "cout", DefChamp[]> = {
     ["cMarge", "Marge visée sur le prix", "%", 1],
     ["cOffre", "Prix proposé par le client", "€", 5, "0 si vous fixez le prix"],
   ],
-  cout: [
-    ["salaire", "Chauffeur, salaire chargé", "€ / mois", 50],
-    ["conso", "Consommation", "L / 100 km", 0.5],
-    ["gazole", "Gazole hors taxe", "€ / L", 0.01],
-    ["vehicule", "Véhicule, loyer ou amortissement", "€ / mois", 10],
-    ["assurance", "Assurance", "€ / mois", 10],
-    ["entretien", "Entretien et pneus", "€ / km", 0.01],
-    ["generaux", "Frais généraux", "€ / mois", 10],
-  ],
+  cout: COUTS,
 };
 
 // [clé, libellé, min, max, pas, suffixe]
@@ -232,9 +223,11 @@ function Section({ titre, sous, champs, s, changer }: { titre: string; sous: str
   );
 }
 
-export function Simulateur({ entreprise, admin }: { entreprise: string; admin: boolean }) {
+export function Simulateur({ entreprise, admin, profil }: { entreprise: string; admin: boolean; profil: Profil }) {
   const vue = useVue();
-  const [s, setS] = useState<Saisie>(DEFAULTS);
+  // Point de départ : les valeurs d'exemple, remplacées par le profil de coûts enregistré.
+  const [depart] = useState<Saisie>(() => ({ ...DEFAULTS, ...profil }));
+  const [s, setS] = useState<Saisie>(depart);
   const [message, setMessage] = useState("");
   const changer = (k: Cle, v: number) => setS((p) => ({ ...p, [k]: Number.isFinite(v) && v >= 0 ? v : 0 }));
   const a = vue === "course" ? calculerCourse(s) : calculerTournee(s);
@@ -251,6 +244,7 @@ export function Simulateur({ entreprise, admin }: { entreprise: string; admin: b
     <div className="app">
       <div className="compte">
         <span>{entreprise}</span>
+        <Link className="lien" href="/profil">Mes coûts</Link>
         {admin && <Link className="lien" href="/admin">Administration</Link>}
         <BoutonDeconnexion />
       </div>
@@ -306,7 +300,7 @@ export function Simulateur({ entreprise, admin }: { entreprise: string; admin: b
           ) : (
             <Section titre="La course demandée" sous="Une livraison ponctuelle à chiffrer." champs={CHAMPS.course} s={s} changer={changer} />
           )}
-          <Section titre="Ce que ça coûte" sous="Valeurs d'exemple à remplacer par les vôtres. Mieux vaut surestimer un peu." champs={CHAMPS.cout} s={s} changer={changer} />
+          <Section titre="Ce que ça coûte" sous="Repris de « Mes coûts ». Les changer ici ne vaut que pour ce calcul." champs={CHAMPS.cout} s={s} changer={changer} />
         </div>
         <div className="stack">
           <section className="panel pad">
@@ -338,7 +332,7 @@ export function Simulateur({ entreprise, admin }: { entreprise: string; admin: b
           )}
           <div className="actions">
             <button type="button" onClick={copier}><IconeCopier />Copier le résumé</button>
-            <button type="button" onClick={() => { setS(DEFAULTS); setMessage("Valeurs d'exemple rétablies."); }}><IconeRetablir />Revenir aux valeurs d&apos;exemple</button>
+            <button type="button" onClick={() => { setS(depart); setMessage("Valeurs de départ rétablies."); }}><IconeRetablir />Revenir aux valeurs de départ</button>
             <span className="note" role="status">{message}</span>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Marque } from "@/components/Marque";
 import { Simulateur } from "@/components/Simulateur";
 import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
+import { CLES_PROFIL, type Profil } from "@/lib/profil";
 
 export default function Accueil() {
   return (
@@ -46,5 +47,7 @@ async function EspaceDirigeant() {
     );
   }
 
-  return <Simulateur entreprise={entreprise} admin={admin} />;
+  // RLS : le dirigeant ne lit que le profil de son entreprise. Sans profil, le simulateur garde les valeurs d'exemple.
+  const { data: profil } = await supabase.from("profils_couts").select(CLES_PROFIL.join(", ")).maybeSingle<Profil>();
+  return <Simulateur entreprise={entreprise} admin={admin} profil={profil ?? {}} />;
 }
