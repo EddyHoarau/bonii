@@ -1,8 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 /** Client Supabase côté serveur, au nom de l'utilisateur connecté (les règles RLS s'appliquent). */
 export async function clientSupabase() {
+  // Le client lit l'heure (Date.now) : Next 16 l'interdit pendant le pré-rendu, on attend donc la vraie requête.
+  await connection();
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
