@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3100"],
       "port": 3100
+    },
+    {
+      "name": "bonii-prototype",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "prototype", "-l", "3101"],
+      "port": 3101
     }
   ]
 }
