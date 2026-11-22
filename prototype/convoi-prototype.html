@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convoi Rentabilité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Big+Shoulders+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Plan : un poste de pilotage de nuit. Un seul monde visuel, sombre par choix.
+   La carte de tournée vivante porte tout l'effet ; le reste est du verre calme autour.
+   Jaune phare pour la marque et les commandes, vert / orange / rouge réservés au verdict. */
+:root{
+  color-scheme:dark;
+  --bg:#090c10; --glass:rgba(255,255,255,.045); --glass-2:rgba(255,255,255,.08);
+  --line:rgba(255,255,255,.11); --ink:#f1f3f5; --muted:#98a2ad;
+  --accent:#ffd23f; --accent-ink:#141203;
+  --ok:#3fe0a0; --warn:#ff9a3d; --bad:#ff5d5d;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Albert Sans","Segoe UI",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:
+    radial-gradient(900px 500px at 12% -10%, rgba(255,210,63,.10), transparent 60%),
+    radial-gradient(900px 600px at 100% 0%, rgba(63,224,160,.07), transparent 60%),
+    var(--bg);
+  color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;min-height:100%}
+.app{max-width:1240px;margin:0 auto;padding:0 20px 64px;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px;padding:22px 0 4px}
+.mark{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;letter-spacing:.14em;margin:0}
+h1 i{font-style:normal;color:var(--accent)}
+.mark p{margin:0;color:var(--muted);font-size:15px}
+nav{display:flex;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:4px}
+nav a{font-weight:600;font-size:15px;text-decoration:none;color:var(--muted);padding:9px 18px;border-radius:999px;white-space:nowrap}
+nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.pad{padding:20px}
+.hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px}
+.map{position:relative;min-height:400px;overflow:hidden}
+.map canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.chips{position:absolute;left:16px;top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:rgba(9,12,16,.72);border:1px solid var(--line);border-radius:12px;padding:8px 12px;backdrop-filter:blur(8px)}
+.chip b{display:block;font-family:var(--display);font-weight:700;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.chip span{color:var(--muted);font-size:12.5px}
+.cap{position:absolute;left:16px;right:16px;bottom:12px;margin:0;color:var(--muted);font-size:12.5px}
+.verdict{display:flex;flex-direction:column;gap:10px;--v:var(--ok);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--v) 35%,transparent),0 0 60px -20px var(--v)}
+.verdict.warn{--v:var(--warn)} .verdict.bad{--v:var(--bad)}
+.pill{align-self:flex-start;font-weight:600;font-size:13.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--v);border:1px solid var(--v);border-radius:999px;padding:5px 12px}
+.pill::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--v);margin-right:8px;box-shadow:0 0 10px var(--v)}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(64px,8.5vw,104px);line-height:.95;font-variant-numeric:tabular-nums;color:var(--v);text-shadow:0 0 36px color-mix(in srgb,var(--v) 45%,transparent)}
+.unit{color:var(--muted);font-size:15px;margin-top:-4px}
+.verdict p{margin:0;font-size:15.5px;max-width:52ch}
+.gauge{margin-top:auto;padding-top:12px}
+.track{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--bad) 0 16.7%,var(--warn) 16.7% 41.7%,var(--ok) 41.7% 100%);opacity:.9}
+.needle{position:absolute;top:-6px;width:4px;height:22px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 3px var(--bg);transform:translateX(-2px);transition:left .5s cubic-bezier(.2,.8,.2,1)}
+.scale{position:relative;height:20px;margin-top:8px;color:var(--muted);font-size:12.5px}
+.scale span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.levers{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px 28px}
+.lever{display:flex;flex-direction:column;gap:8px}
+.lever .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lever label{color:var(--muted);font-size:14.5px}
+.lever output{font-family:var(--display);font-weight:700;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:6px;border-radius:999px;background:var(--glass-2);margin:6px 0;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:0;box-shadow:0 0 0 5px rgba(255,210,63,.18),0 0 18px rgba(255,210,63,.6)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:0;box-shadow:0 0 0 5px rgba(255,210,63,.18),0 0 18px rgba(255,210,63,.6)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.tile{padding:16px 18px}
+.tile b{display:block;font-family:var(--display);font-weight:700;font-size:36px;line-height:1.05;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:13.5px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:18px}
+h2{font-weight:600;font-size:18px;margin:0 0 2px;text-wrap:balance}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px 16px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:13.5px;color:var(--muted)}
+.box{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.25)}
+.box:focus-within{border-color:var(--accent)}
+.box input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:600 17px var(--body);font-variant-numeric:tabular-nums;padding:9px 12px}
+.box input:focus{outline:none}
+.box span{color:var(--muted);font-size:13px;padding:0 12px 0 0;white-space:nowrap}
+.hint{color:var(--muted);font-size:12.5px}
+.rows{display:flex;flex-direction:column;gap:12px}
+.row{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(60px,2fr) auto;gap:12px;align-items:center;font-size:14.5px}
+.bar{height:8px;background:var(--glass-2);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,rgba(255,210,63,.55),var(--accent));transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.row b{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;white-space:nowrap}
+.scroll{overflow-x:auto}
+table{border-collapse:separate;border-spacing:4px;width:100%;font-variant-numeric:tabular-nums;font-size:14.5px}
+th,td{padding:9px 8px;text-align:right;white-space:nowrap;border-radius:8px}
+th{font-weight:500;color:var(--muted);font-size:13px}
+td{font-weight:600}
+td.neg{color:var(--bad);background:rgba(255,93,93,.13)} td.low{color:var(--warn);background:rgba(255,154,61,.13)} td.pos{color:var(--ok);background:rgba(63,224,160,.10)}
+td.here{box-shadow:inset 0 0 0 2px var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:600 14.5px var(--body);color:var(--ink);background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:10px 18px;cursor:pointer}
+button:hover{background:var(--glass-2)}
+.note{color:var(--muted);font-size:13.5px;margin:0}
+[hidden]{display:none!important}
+@media (max-width:900px){.hero,.cols{grid-template-columns:minmax(0,1fr)} .map{min-height:320px} h1{font-size:32px}}
+@media (prefers-reduced-motion:reduce){.needle,.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="mark">
+      <h1>CONVO<i>I</i></h1>
+      <p>Savoir si une tournée rapporte, avant de la signer.</p>
+    </div>
+    <nav aria-label="Type de chiffrage">
+      <a href="#tournee" id="tab-tournee">Tournée en appel d'offres</a>
+      <a href="#course" id="tab-course">Course au devis</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="panel map">
+      <canvas id="map" aria-hidden="true"></canvas>
+      <div class="chips" id="chips"></div>
+      <p class="cap" id="cap"></p>
+    </div>
+    <div class="panel pad verdict" id="verdict">
+      <span class="pill" id="v-pill"></span>
+      <div class="big" id="v-big"></div>
+      <div class="unit" id="v-unit"></div>
+      <p id="v-text"></p>
+      <div class="gauge" id="gauge">
+        <div class="track"><div class="needle" id="needle"></div></div>
+        <div class="scale"><span style="left:16.7%">0 %</span><span style="left:41.7%">15 %, marge de sécurité</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel pad levers" id="levers" aria-label="Leviers principaux"></section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="cols">
+    <div class="stack">
+      <section class="panel pad" id="sec-ao">
+        <h2>Ce que l'appel d'offres annonce</h2>
+        <p class="sub">Les volumes estimés par le donneur d'ordre.</p>
+        <div class="fields" id="f-ao"></div>
+      </section>
+      <section class="panel pad" id="sec-pay">
+        <h2>Ce qu'il paie</h2>
+        <p class="sub">Prix au point, forfait du matin, dégressivité et retenues.</p>
+        <div class="fields" id="f-pay"></div>
+      </section>
+      <section class="panel pad" id="sec-course" hidden>
+        <h2>La course demandée</h2>
+        <p class="sub">Une livraison ponctuelle à chiffrer.</p>
+        <div class="fields" id="f-course"></div>
+      </section>
+      <section class="panel pad">
+        <h2>Ce que ça coûte</h2>
+        <p class="sub">Valeurs d'exemple à remplacer par les vôtres. Mieux vaut surestimer un peu.</p>
+        <div class="fields" id="f-cout"></div>
+      </section>
+    </div>
+    <div class="stack">
+      <section class="panel pad">
+        <h2>Où part l'argent</h2>
+        <p class="sub" id="cost-sub"></p>
+        <div class="rows" id="costs"></div>
+      </section>
+      <section class="panel pad" id="sec-sens">
+        <h2>Si les volumes ou le prix bougent</h2>
+        <p class="sub">Marge mensuelle selon les points livrés par jour et le prix au point. La case encadrée est votre hypothèse.</p>
+        <div class="scroll"><table id="sens"></table></div>
+      </section>
+      <div class="actions">
+        <button type="button" id="btn-copy">Copier le résumé</button>
+        <button type="button" id="btn-reset">Revenir aux valeurs d'exemple</button>
+        <span class="note" id="msg" role="status"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="model">
+var DEFAULTS = {
+  jours:22, points:40, km:150,
+  prixPoint:7.5, forfait:80, seuil:500, prixApres:5.5, echec:5, prixRepassage:4, incidents:2, penalite:40,
+  salaire:3000, conso:10, gazole:1.45, vehicule:600, assurance:200, entretien:0.05, generaux:300,
+  cKm:250, cHeures:8, cPeages:0, cMarge:33, cOffre:0
+};
+function couts(s, kmMois){
+  return [
+    ["Chauffeur (salaire chargé)", s.salaire],
+    ["Carburant", kmMois * s.conso / 100 * s.gazole],
+    ["Véhicule (loyer ou amortissement)", s.vehicule],
+    ["Assurance", s.assurance],
+    ["Entretien et pneus", kmMois * s.entretien],
+    ["Frais généraux", s.generaux]
+  ];
+}
+function tournee(s){
+  var total = s.points * s.jours;
+  var repasses = total * s.echec / 100;
+  var livres = total - repasses;
+  var plein = s.seuil > 0 ? Math.min(livres, s.seuil) : livres;
+  var reduit = livres - plein;
+  var caPoints = plein * s.prixPoint + reduit * s.prixApres;
+  var caRep = repasses * s.prixRepassage;
+  var caForfait = s.forfait * s.jours;
+  var retenues = s.incidents * s.penalite;
+  var ca = caPoints + caRep + caForfait - retenues;
+  var lignes = couts(s, s.km * s.jours);
+  var cout = lignes.reduce(function(a, l){ return a + l[1]; }, 0);
+  var marge = ca - cout;
+  return { total:total, livres:livres, reduit:reduit, ca:ca, cout:cout, marge:marge,
+           taux: ca > 0 ? marge / ca : -1, lignes:lignes, retenues:retenues,
+           coutPoint: total > 0 ? cout / total : 0 };
+}
+function avec(s, o){ var c = {}; for (var k in s) c[k] = s[k]; for (var j in o) c[j] = o[j]; return c; }
+function seuilSur(s, champ, max){
+  var f = function(v){
+    var o = {}; o[champ] = v;
+    if (champ === "prixPoint" && s.prixPoint > 0) o.prixApres = v * s.prixApres / s.prixPoint;
+    return tournee(avec(s, o)).marge;
+  };
+  if (f(max) < 0) return null;
+  var a = 0, b = max;
+  for (var i = 0; i < 50; i++){ var m = (a + b) / 2; if (f(m) < 0) a = m; else b = m; }
+  return b;
+}
+function course(s){
+  var part = s.cHeures / 8;
+  var fixesJour = s.jours > 0 ? (s.vehicule + s.assurance + s.generaux) / s.jours : 0;
+  var lignes = [
+    ["Chauffeur (" + s.cHeures + " h)", s.salaire / 151.67 * s.cHeures],
+    ["Carburant", s.cKm * s.conso / 100 * s.gazole],
+    ["Entretien et pneus", s.cKm * s.entretien],
+    ["Véhicule, assurance, frais généraux", fixesJour * part],
+    ["Péages et frais", s.cPeages]
+  ];
+  var plancher = lignes.reduce(function(a, l){ return a + l[1]; }, 0);
+  var m = Math.min(Math.max(s.cMarge, 0), 90) / 100;
+  var conseille = plancher / (1 - m);
+  return { lignes:lignes, plancher:plancher, conseille:conseille,
+           auKm: s.cKm > 0 ? conseille / s.cKm : 0,
+           margeOffre: s.cOffre > 0 ? s.cOffre - plancher : null };
+}
+if (typeof module !== "undefined") module.exports = { DEFAULTS:DEFAULTS, tournee:tournee, seuilSur:seuilSur, course:course };
+</script>
+<script>
+(function(){
+  var FIELDS = {
+    "f-ao":[
+      ["jours","Jours travaillés par mois","jours",1],
+      ["points","Points à livrer par jour","points",1],
+      ["km","Kilomètres par jour","km",5]
+    ],
+    "f-pay":[
+      ["prixPoint","Prix du point livré","€",0.1],
+      ["forfait","Forfait par jour de présence","€",5],
+      ["seuil","Dégressivité à partir de","points / mois",10,"0 si aucune dégressivité"],
+      ["prixApres","Prix du point au-delà","€",0.1],
+      ["echec","Points non livrés au premier passage","%",1],
+      ["prixRepassage","Prix du point repassé","€",0.1],
+      ["incidents","Colis en litige par mois","colis",1],
+      ["penalite","Retenue par colis en litige","€",5]
+    ],
+    "f-course":[
+      ["cKm","Distance aller et retour","km",10],
+      ["cHeures","Temps passé, attente comprise","h",0.5],
+      ["cPeages","Péages et frais","€",1],
+      ["cMarge","Marge visée sur le prix","%",1],
+      ["cOffre","Prix proposé par le client","€",5,"0 si vous fixez le prix"]
+    ],
+    "f-cout":[
+      ["salaire","Chauffeur, salaire chargé","€ / mois",50],
+      ["conso","Consommation","L / 100 km",0.5],
+      ["gazole","Gazole hors taxe","€ / L",0.01],
+      ["vehicule","Véhicule, loyer ou amortissement","€ / mois",10],
+      ["assurance","Assurance","€ / mois",10],
+      ["entretien","Entretien et pneus","€ / km",0.01],
+      ["generaux","Frais généraux","€ / mois",10]
+    ]
+  };
+  var LEVERS = {
+    tournee:[["points","Points livrés par jour",5,120,1,""],["prixPoint","Prix du point",3,12,0.1," €"],["km","Kilomètres par jour",20,400,5," km"]],
+    course:[["cKm","Distance aller et retour",10,900,10," km"],["cHeures","Temps passé",1,14,0.5," h"],["cMarge","Marge visée",0,60,1," %"]]
+  };
+  var COL = { ok:"#3fe0a0", warn:"#ff9a3d", bad:"#ff5d5d" };
+  var KEY = "convoi-rentabilite";
+  var hot = window.claude && window.claude.hot;
+  var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var s, etat = "ok";
+
+  function load(data){
+    var saved = data && data.s;
+    if (!saved){ try { saved = JSON.parse(localStorage.getItem(KEY)); } catch(e){ saved = null; } }
+    s = {}; for (var k in DEFAULTS) s[k] = (saved && isFinite(saved[k])) ? +saved[k] : DEFAULTS[k];
+  }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} }
+
+  var nf0 = new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0});
+  var nf1 = new Intl.NumberFormat("fr-FR",{maximumFractionDigits:1});
+  var nf2 = new Intl.NumberFormat("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  function clean(t){ return t.replace(/−/g,"-"); }
+  function eur(n){ return clean(nf0.format(Math.round(n))) + " €"; }
+  function eur2(n){ return clean(nf2.format(n)) + " €"; }
+  function signe(n){ return (Math.round(n) > 0 ? "+" : "") + eur(n); }
+  function el(id){ return document.getElementById(id); }
+  function vue(){ return location.hash === "#course" ? "course" : "tournee"; }
+
+  function setKey(k, v, src){
+    s[k] = isFinite(v) && v >= 0 ? v : 0;
+    document.querySelectorAll('[data-k="' + k + '"]').forEach(function(i){ if (i !== src) i.value = s[k]; });
+    save(); render();
+  }
+  function build(){
+    Object.keys(FIELDS).forEach(function(box){
+      el(box).innerHTML = FIELDS[box].map(function(f){
+        return '<div class="field"><label for="in-' + f[0] + '">' + f[1] + '</label>' +
+          '<div class="box"><input id="in-' + f[0] + '" type="number" inputmode="decimal" min="0" step="' + f[3] + '" data-k="' + f[0] + '"><span>' + f[2] + '</span></div>' +
+          (f[4] ? '<span class="hint">' + f[4] + '</span>' : '') + '</div>';
+      }).join("");
+    });
+    bind(document);
+  }
+  function bind(root){
+    root.querySelectorAll("input[data-k]").forEach(function(i){
+      i.value = s[i.dataset.k];
+      i.addEventListener("input", function(){ setKey(i.dataset.k, parseFloat(String(i.value).replace(",", ".")), i); });
+    });
+  }
+  var leversFor = "";
+  function buildLevers(v){
+    if (leversFor === v) return; leversFor = v;
+    el("levers").innerHTML = LEVERS[v].map(function(l){
+      return '<div class="lever"><div class="head"><label for="lv-' + l[0] + '">' + l[1] + '</label><output id="out-' + l[0] + '"></output></div>' +
+        '<input id="lv-' + l[0] + '" type="range" min="' + l[2] + '" max="' + l[3] + '" step="' + l[4] + '" data-k="' + l[0] + '"></div>';
+    }).join("");
+    bind(el("levers"));
+  }
+  function leverOut(v){ LEVERS[v].forEach(function(l){ el("out-" + l[0]).textContent = clean(nf1.format(s[l[0]])) + l[5]; }); }
+
+  /* Chiffre principal animé */
+  var bigVal = null, bigRaf = 0;
+  function setBig(to, fmt){
+    cancelAnimationFrame(bigRaf);
+    var from = bigVal === null ? to : bigVal; bigVal = to;
+    if (calm || from === to){ el("v-big").textContent = fmt(to); return; }
+    var t0 = performance.now();
+    (function step(t){
+      var p = Math.min(1, (t - t0) / 450), e = 1 - Math.pow(1 - p, 3);
+      el("v-big").textContent = fmt(from + (to - from) * e);
+      if (p < 1) bigRaf = requestAnimationFrame(step);
+    })(t0);
+  }
+  function tiles(list){
+    el("tiles").innerHTML = list.map(function(t){ return '<div class="panel tile"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>'; }).join("");
+  }
+  function costRows(lignes, total){
+    el("costs").innerHTML = lignes.map(function(l){
+      var p = total > 0 ? l[1] / total * 100 : 0;
+      return '<div class="row"><span>' + l[0] + '</span><div class="bar"><i style="width:' + p.toFixed(1) + '%"></i></div><b>' + eur(l[1]) + '</b></div>';
+    }).join("");
+  }
+  function verdict(cls, pill, value, fmt, unit, text, taux){
+    etat = cls;
+    el("verdict").className = "panel pad verdict " + cls;
+    el("v-pill").textContent = pill; el("v-unit").textContent = unit; el("v-text").textContent = text;
+    setBig(value, fmt);
+    el("gauge").hidden = taux === null;
+    if (taux !== null) el("needle").style.left = (Math.min(1, Math.max(0, (taux + 0.1) / 0.6)) * 100).toFixed(1) + "%";
+  }
+  function chips(list){ el("chips").innerHTML = list.map(function(c){ return '<div class="chip"><b>' + c[0] + '</b><span>' + c[1] + '</span></div>'; }).join(""); }
+
+  var resume = "";
+  function renderTournee(){
+    var r = tournee(s);
+    var pMin = seuilSur(s, "prixPoint", 60), nMin = seuilSur(s, "points", 600);
+    var efface = s.prixPoint > 0 ? Math.ceil(s.penalite / s.prixPoint) : 0;
+    var cls = r.marge < 0 ? "bad" : (r.taux < 0.15 ? "warn" : "ok");
+    var pill = cls === "bad" ? "À perte" : (cls === "warn" ? "Trop juste" : "Rentable");
+    var txt = cls === "bad"
+      ? "Cette tournée coûte plus qu'elle ne rapporte. Il manque " + eur(-r.marge) + " par mois pour atteindre l'équilibre."
+      : (cls === "warn"
+        ? "La marge existe mais ne couvre pas un imprévu : panne, arrêt, litiges. Elle représente " + Math.round(r.taux * 100) + " % du chiffre d'affaires."
+        : "La marge représente " + Math.round(r.taux * 100) + " % du chiffre d'affaires.");
+    if (efface > 0) txt += " Un colis en litige efface le gain de " + efface + " points livrés.";
+    verdict(cls, pill, r.marge, signe, "de marge par mois", txt, r.taux);
+    chips([[nf0.format(s.points), "points par jour"], [nf0.format(s.km) + " km", "par jour"], [eur2(r.coutPoint), "de coût par point"]]);
+    var rep = Math.round(Math.min(120, s.points) * s.echec / 100);
+    el("cap").textContent = "Illustration d'une tournée de " + nf0.format(Math.min(120, Math.round(s.points))) + " points. " + (rep > 0 ? "Les arrêts cerclés de rouge sont à repasser." : "");
+    tiles([
+      [eur(r.ca), "Chiffre d'affaires mensuel"],
+      [eur(r.cout), "Coût de revient mensuel"],
+      [pMin === null ? "Aucun" : eur2(pMin), "Prix du point minimum pour l'équilibre"],
+      [nMin === null ? "Jamais" : nf0.format(Math.ceil(nMin)), "Points par jour minimum pour l'équilibre"],
+      [nf0.format(Math.round(r.reduit)), "Points payés au tarif dégressif"]
+    ]);
+    el("cost-sub").textContent = "Répartition des " + eur(r.cout) + " de coûts mensuels.";
+    costRows(r.lignes, r.cout);
+    var dp = [-10,-5,0,5,10], dx = [-1,-0.5,0,0.5,1];
+    var h = '<tr><th>Points / jour</th>' + dx.map(function(d){ return '<th>' + eur2(Math.max(0, s.prixPoint + d)) + '</th>'; }).join("") + '</tr>';
+    dp.forEach(function(a){
+      var pts = Math.max(0, s.points + a);
+      h += '<tr><th>' + nf0.format(pts) + '</th>' + dx.map(function(d){
+        var px = Math.max(0, s.prixPoint + d);
+        var o = tournee(avec(s, { points:pts, prixPoint:px, prixApres: s.prixPoint > 0 ? px * s.prixApres / s.prixPoint : s.prixApres }));
+        var c = o.marge < 0 ? "neg" : (o.taux < 0.15 ? "low" : "pos");
+        return '<td class="' + c + (a === 0 && d === 0 ? " here" : "") + '">' + signe(o.marge) + '</td>';
+      }).join("") + '</tr>';
+    });
+    el("sens").innerHTML = h;
+    resume = "Tournée : " + s.points + " points/jour, " + s.km + " km/jour, " + s.jours + " jours/mois, " + eur2(s.prixPoint) + " le point.\n" +
+      "Chiffre d'affaires " + eur(r.ca) + ", coûts " + eur(r.cout) + ", marge " + signe(r.marge) + " par mois (" + pill + ").\n" +
+      "Équilibre : " + (pMin === null ? "inatteignable sur le prix" : eur2(pMin) + " le point") + " ou " + (nMin === null ? "inatteignable sur le volume" : Math.ceil(nMin) + " points/jour") + ".";
+    setScene(Math.max(1, Math.min(120, Math.round(s.points))), rep, false);
+  }
+  function renderCourse(){
+    var r = course(s);
+    if (r.margeOffre !== null){
+      var t = r.margeOffre / s.cOffre;
+      var cls = r.margeOffre < 0 ? "bad" : (t < 0.15 ? "warn" : "ok");
+      var pill = cls === "bad" ? "À refuser" : (cls === "warn" ? "À négocier" : "À accepter");
+      verdict(cls, pill, r.margeOffre, signe, "de marge au prix proposé", "Le client propose " + eur(s.cOffre) + ". Le prix plancher est de " + eur(r.plancher) + " et le prix conseillé de " + eur(r.conseille) + ".", t);
+    } else {
+      verdict("ok", "Prix conseillé", r.conseille, eur, "hors taxe", "En dessous de " + eur(r.plancher) + ", la course se fait à perte.", null);
+    }
+    chips([[nf0.format(s.cKm) + " km", "aller et retour"], [clean(nf1.format(s.cHeures)) + " h", "temps passé"], [eur2(r.auKm), "conseillé au km"]]);
+    el("cap").textContent = "Illustration d'une course aller et retour.";
+    tiles([
+      [eur(r.plancher), "Prix plancher, le coût de revient"],
+      [eur(r.conseille), "Prix conseillé à " + s.cMarge + " % de marge"],
+      [eur2(r.auKm), "Prix conseillé au kilomètre"],
+      [eur(r.conseille - r.plancher), "Marge au prix conseillé"]
+    ]);
+    el("cost-sub").textContent = "Répartition des " + eur(r.plancher) + " de coût de revient de la course.";
+    costRows(r.lignes, r.plancher);
+    resume = "Course : " + s.cKm + " km, " + s.cHeures + " h.\nPrix plancher " + eur(r.plancher) + ", prix conseillé " + eur(r.conseille) + " HT (" + eur2(r.auKm) + " du km).";
+    setScene(1, 0, true);
+  }
+  function render(){
+    var v = vue(), c = v === "course";
+    el("sec-ao").hidden = c; el("sec-pay").hidden = c; el("sec-sens").hidden = c; el("sec-course").hidden = !c;
+    if (c){ el("tab-course").setAttribute("aria-current","page"); el("tab-tournee").removeAttribute("aria-current"); }
+    else { el("tab-tournee").setAttribute("aria-current","page"); el("tab-course").removeAttribute("aria-current"); }
+    buildLevers(v); leverOut(v);
+    if (c) renderCourse(); else renderTournee();
+    if (calm && cv) requestAnimationFrame(frame);
+  }
+
+  /* ---------- Carte de tournée (illustration générée) ---------- */
+  var cv, cx, W = 0, H = 0, scene = null, sceneKey = "", t0 = 0, streets = null;
+  function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function makeStreets(){
+    var r = rng(7), L = [];
+    for (var i = 0; i < 13; i++){ var x = (i + r() * .6) / 13, d = (r() - .5) * .12; L.push([x, -0.05, x + d, 1.05, r() < .2 ? 2 : 1]); }
+    for (var j = 0; j < 9; j++){ var y = (j + r() * .6) / 9, e = (r() - .5) * .14; L.push([-0.05, y, 1.05, y + e, r() < .25 ? 2 : 1]); }
+    L.push([-0.05, .92, 1.05, .18, 3]); L.push([.05, -0.05, .62, 1.05, 3]);
+    return L;
+  }
+  function setScene(n, rep, single){
+    var key = n + "|" + rep + "|" + single;
+    if (key === sceneKey) return; sceneKey = key;
+    var r = rng(single ? 99 : 1234), pts = [], depot = [0.11, 0.80];
+    if (single) pts.push([0.86, 0.36]);
+    else {
+      var centers = [[.36,.42],[.68,.3],[.74,.68],[.45,.74],[.56,.5]];
+      for (var i = 0; i < n; i++){
+        var c = centers[Math.floor(r() * centers.length)];
+        var a = r() * 6.283, d = Math.sqrt(-2 * Math.log(1 - r() * .999)) * .095;
+        pts.push([Math.min(.95, Math.max(.2, c[0] + Math.cos(a) * d * 1.25)), Math.min(.84, Math.max(.34, c[1] + .06 + Math.sin(a) * d))]);
+      }
+    }
+    var left = pts.slice(), order = [], cur = depot;
+    while (left.length){
+      var bi = 0, bd = 1e9;
+      for (var k = 0; k < left.length; k++){ var dd = Math.hypot(left[k][0] - cur[0], left[k][1] - cur[1]); if (dd < bd){ bd = dd; bi = k; } }
+      cur = left.splice(bi, 1)[0]; order.push(cur);
+    }
+    var path = [depot].concat(order, [depot]);
+    var D = function(a, b){ return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+    for (var pass = 0; pass < 3; pass++){
+      for (var x = 1; x < path.length - 2; x++){
+        for (var y = x + 1; y < path.length - 1; y++){
+          if (D(path[x - 1], path[x]) + D(path[y], path[y + 1]) > D(path[x - 1], path[y]) + D(path[x], path[y + 1]) + 1e-9){
+            var seg = path.slice(x, y + 1).reverse(); for (var z = 0; z < seg.length; z++) path[x + z] = seg[z];
+          }
+        }
+      }
+    }
+    var fail = {}, f = rng(55), tries = 0;
+    while (Object.keys(fail).length < Math.min(rep, n) && tries++ < 2000) fail[1 + Math.floor(f() * n)] = 1;
+    scene = { path:path, fail:fail, single:single };
+    t0 = performance.now();
+  }
+  function size(){
+    var b = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = b.width; H = b.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function frame(now){
+    if (!scene || !W){ requestAnimationFrame(frame); return; }
+    var col = COL[etat], P = scene.path.map(function(p){ return [p[0] * W, p[1] * H]; });
+    cx.clearRect(0, 0, W, H);
+    var g = cx.createRadialGradient(W * .6, H * .45, 10, W * .6, H * .45, Math.max(W, H) * .8);
+    g.addColorStop(0, "rgba(255,255,255,.05)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+    streets.forEach(function(l){
+      cx.beginPath(); cx.moveTo(l[0] * W, l[1] * H); cx.lineTo(l[2] * W, l[3] * H);
+      cx.lineWidth = l[4] === 3 ? 5 : l[4]; cx.strokeStyle = l[4] === 3 ? "rgba(255,255,255,.07)" : "rgba(255,255,255,.055)"; cx.stroke();
+    });
+    var len = [0]; for (var i = 1; i < P.length; i++) len.push(len[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+    var total = len[len.length - 1] || 1, el2 = (now - t0) / 1000;
+    var draw = calm ? 1 : Math.min(1, el2 / 2.6); draw = 1 - Math.pow(1 - draw, 3);
+    var reach = draw * total;
+    cx.save(); cx.lineJoin = "round"; cx.lineCap = "round"; cx.shadowColor = col; cx.shadowBlur = 16; cx.strokeStyle = col; cx.lineWidth = 2.4;
+    cx.beginPath(); cx.moveTo(P[0][0], P[0][1]);
+    for (var j = 1; j < P.length; j++){
+      if (len[j] <= reach) cx.lineTo(P[j][0], P[j][1]);
+      else { var q = (reach - len[j - 1]) / (len[j] - len[j - 1] || 1); if (q > 0) cx.lineTo(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q); break; }
+    }
+    cx.stroke(); cx.restore();
+    for (var k = 1; k < P.length - 1; k++){
+      var on = len[k] <= reach, bad = scene.fail[k];
+      cx.beginPath(); cx.arc(P[k][0], P[k][1], scene.single ? 7 : 4, 0, 6.283);
+      cx.fillStyle = on ? (bad ? "#090c10" : "#f1f3f5") : "rgba(255,255,255,.25)"; cx.fill();
+      if (on && bad){ cx.lineWidth = 2; cx.strokeStyle = COL.bad; cx.stroke(); }
+    }
+    cx.fillStyle = "#ffd23f"; cx.shadowColor = "#ffd23f"; cx.shadowBlur = 18;
+    cx.fillRect(P[0][0] - 7, P[0][1] - 7, 14, 14); cx.shadowBlur = 0;
+    cx.fillStyle = "rgba(241,243,245,.75)"; cx.font = "600 12px 'Albert Sans',sans-serif"; cx.fillText("Dépôt", P[0][0] - 16, P[0][1] + 26);
+    if (!calm && draw >= 1){
+      var loop = scene.single ? 9 : 22, d = ((el2 - 2.6) % loop) / loop * total, m = 1;
+      while (m < len.length - 1 && len[m] < d) m++;
+      var u = (d - len[m - 1]) / (len[m] - len[m - 1] || 1), vx = P[m - 1][0] + (P[m][0] - P[m - 1][0]) * u, vy = P[m - 1][1] + (P[m][1] - P[m - 1][1]) * u;
+      var pulse = 9 + Math.sin(now / 260) * 3;
+      cx.beginPath(); cx.arc(vx, vy, pulse + 6, 0, 6.283); cx.fillStyle = "rgba(255,210,63,.16)"; cx.fill();
+      cx.beginPath(); cx.arc(vx, vy, 5.5, 0, 6.283); cx.fillStyle = "#ffd23f"; cx.shadowColor = "#ffd23f"; cx.shadowBlur = 20; cx.fill(); cx.shadowBlur = 0;
+    }
+    if (!calm || draw < 1) requestAnimationFrame(frame);
+  }
+  function startMap(){
+    cv = el("map"); cx = cv.getContext("2d"); streets = makeStreets(); size();
+    if (window.ResizeObserver) new ResizeObserver(function(){ size(); if (calm) requestAnimationFrame(frame); }).observe(cv);
+    else window.addEventListener("resize", size);
+    requestAnimationFrame(frame);
+  }
+
+  function start(data){
+    load(data); build(); startMap(); render();
+    window.addEventListener("hashchange", function(){ bigVal = null; render(); if (calm) requestAnimationFrame(frame); });
+    el("btn-reset").addEventListener("click", function(){
+      for (var k in DEFAULTS) s[k] = DEFAULTS[k];
+      document.querySelectorAll("input[data-k]").forEach(function(i){ i.value = s[i.dataset.k]; });
+      save(); render(); el("msg").textContent = "Valeurs d'exemple rétablies.";
+    });
+    el("btn-copy").addEventListener("click", function(){
+      var done = function(ok){ el("msg").textContent = ok ? "Résumé copié." : "Copie impossible ici. Sélectionnez les chiffres à la main."; };
+      try { navigator.clipboard.writeText(resume).then(function(){ done(true); }, function(){ done(false); }); } catch(e){ done(false); }
+    });
+    if (hot && hot.snapshot) hot.snapshot(function(){ return { s:s }; });
+  }
+  if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
