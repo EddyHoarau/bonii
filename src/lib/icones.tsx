@@ -1,6 +1,6 @@
 // Seul fichier qui importe les icônes : Phosphor, trait fin (poids « light »).
 // Pour ajouter une icône, l'importer ici et l'exporter sous un nom français.
-import { ArrowCounterClockwise, Camera, Check, Columns, CopySimple, DownloadSimple, Envelope, FloppyDisk, Path, Plus, SignOut, Trash } from "@phosphor-icons/react/ssr"; // variante sans contexte React : marche côté serveur et navigateur
+import { ArrowCounterClockwise, Camera, Check, Columns, CopySimple, DownloadSimple, Envelope, FloppyDisk, NavigationArrow, PaperPlaneRight, Path, Plus, SignOut, Trash } from "@phosphor-icons/react/ssr"; // variante sans contexte React : marche côté serveur et navigateur
 import type { IconProps } from "@phosphor-icons/react";
 
 const fin: IconProps = { weight: "light", size: 18, "aria-hidden": true };
@@ -17,3 +17,5 @@ export function IconeFait(p: IconProps) { return <Check {...fin} {...p} />; }
 export function IconeSupprimer(p: IconProps) { return <Trash {...fin} {...p} />; }
 export function IconePhoto(p: IconProps) { return <Camera {...fin} {...p} />; }
 export function IconeItineraire(p: IconProps) { return <Path {...fin} {...p} />; }
+export function IconeEnvoyer(p: IconProps) { return <PaperPlaneRight {...fin} {...p} />; }
+export function IconeGuidage(p: IconProps) { return <NavigationArrow {...fin} {...p} />; }

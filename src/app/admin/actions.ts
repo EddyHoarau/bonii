@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { clientAdmin } from "@/lib/supabase/admin";
+import { clientAdmin, compteParEmail } from "@/lib/supabase/admin";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
 
 export type EtatInvitation = { ok: boolean; message: string } | null;
@@ -23,15 +23,9 @@ export async function creerEntreprise(_: EtatInvitation, form: FormData): Promis
 
   // 1. Le compte du dirigeant, créé sans e-mail (les modèles d'invitation de Supabase ne sont
   //    modifiables qu'avec un service d'envoi branché). Il se connecte ensuite par lien sur /connexion.
-  let userId: string | undefined;
-  const cree = await admin.auth.admin.createUser({ email, email_confirm: true });
-  if (cree.data.user) userId = cree.data.user.id;
-  else if (cree.error?.code === "email_exists") {
-    // shortcut: recherche dans les 1 000 premiers comptes, à remplacer par une fonction SQL au-delà.
-    const { data: liste } = await admin.auth.admin.listUsers({ perPage: 1000 });
-    userId = liste?.users.find((u) => u.email?.toLowerCase() === email)?.id;
-  }
-  if (!userId) return { ok: false, message: "Le compte n'a pas pu être créé : " + (cree.error?.message ?? "compte introuvable") + "." };
+  const compte = await compteParEmail(admin, email);
+  if ("erreur" in compte) return { ok: false, message: "Le compte n'a pas pu être créé : " + compte.erreur + "." };
+  const userId = compte.userId;
 
   // 2. L'entreprise, son dirigeant et son profil de coûts (valeurs d'exemple).
   const { data: ent, error: e1 } = await admin.from("entreprises").insert({ nom }).select("id").single();

@@ -37,6 +37,18 @@ export async function entrepriseDuDirigeant() {
   return { supabase, entrepriseId: (m?.entreprise_id as string | undefined) ?? null };
 }
 
+/** Client Supabase et rattachement de la personne connectée : son entreprise, son rôle, son nom affiché (null si aucun). */
+export async function membreConnecte() {
+  const supabase = await clientSupabase();
+  const { data } = await supabase.auth.getClaims();
+  const userId = (data?.claims?.sub as string | undefined) ?? null;
+  if (!userId) return { supabase, userId, entrepriseId: null, role: null, nom: null };
+  // shortcut: une seule entreprise par compte ; à revoir si un compte en rejoint plusieurs.
+  const { data: m } = await supabase.from("membres").select("entreprise_id, role, nom").eq("user_id", userId).limit(1)
+    .maybeSingle<{ entreprise_id: string; role: "dirigeant" | "chauffeur"; nom: string | null }>();
+  return { supabase, userId, entrepriseId: m?.entreprise_id ?? null, role: m?.role ?? null, nom: m?.nom ?? null };
+}
+
 /** Adresses autorisées à créer des entreprises (variable serveur ADMIN_EMAILS, séparées par des virgules). */
 export function estAdmin(email: string | undefined | null) {
   const liste = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);

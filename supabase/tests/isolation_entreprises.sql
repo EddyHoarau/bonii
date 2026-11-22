@@ -8,6 +8,8 @@ declare
   a uuid := gen_random_uuid();  -- dirigeant de l'entreprise A
   b uuid := gen_random_uuid();  -- dirigeant de l'entreprise B
   c uuid := gen_random_uuid();  -- chauffeur de l'entreprise A
+  d uuid := gen_random_uuid();  -- autre chauffeur de l'entreprise A
+  nc uuid;                      -- note de frais du chauffeur C
   ea uuid; eb uuid; n int;
   ta uuid; tb uuid;  -- tournées de A et de B
   da uuid; db uuid; sa uuid;  -- donneurs d'ordre de A et de B, simulation de A
@@ -15,10 +17,11 @@ begin
   insert into auth.users (id, email, aud, role) values
     (a, 'test-a@bonii.invalid', 'authenticated', 'authenticated'),
     (b, 'test-b@bonii.invalid', 'authenticated', 'authenticated'),
-    (c, 'test-c@bonii.invalid', 'authenticated', 'authenticated');
+    (c, 'test-c@bonii.invalid', 'authenticated', 'authenticated'),
+    (d, 'test-d@bonii.invalid', 'authenticated', 'authenticated');
   insert into public.entreprises (nom) values ('Test A') returning id into ea;
   insert into public.entreprises (nom) values ('Test B') returning id into eb;
-  insert into public.membres values (ea, a, 'dirigeant'), (eb, b, 'dirigeant'), (ea, c, 'chauffeur');
+  insert into public.membres values (ea, a, 'dirigeant'), (eb, b, 'dirigeant'), (ea, c, 'chauffeur'), (ea, d, 'chauffeur');
   insert into public.profils_couts (entreprise_id) values (ea), (eb);
   insert into public.simulations (entreprise_id, type, nom, saisie, cree_par) values
     (ea, 'tournee', 'Simulation A', '{}', a),
@@ -50,7 +53,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   select count(*) into n from public.entreprises;   if n <> 1 then raise exception 'ÉCHEC : A voit % entreprises', n; end if;
-  select count(*) into n from public.membres;       if n <> 2 then raise exception 'ÉCHEC : A voit % membres (attendu 2)', n; end if;
+  select count(*) into n from public.membres;       if n <> 3 then raise exception 'ÉCHEC : A voit % membres (attendu 3)', n; end if;
   select count(*) into n from public.profils_couts; if n <> 1 then raise exception 'ÉCHEC : A voit % profils de coûts', n; end if;
   select count(*) into n from public.simulations;   if n <> 1 then raise exception 'ÉCHEC : A voit % simulations', n; end if;
   select count(*) into n from public.simulations where entreprise_id = eb;
@@ -179,6 +182,114 @@ begin
   select count(*) into n from public.arrets;         if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les arrêts'; end if;
   execute 'reset role';
 
+  -- Lot 5. La tournée de A est confiée au chauffeur C ; une seconde tournée de A reste sans chauffeur.
+  update public.tournees set chauffeur_id = c where id = ta;
+  insert into public.tournees (entreprise_id, nom, depart, depart_lat, depart_lon) values (ea, 'Tournée sans chauffeur', 'Dépôt A', 48.69, 6.18);
+  begin
+    update public.tournees set chauffeur_id = c where id = tb;
+    raise exception 'ÉCHEC : une tournée de B a été confiée à un chauffeur de A';
+  exception when foreign_key_violation then null;
+  end;
+
+  -- Chauffeur C : sa tournée et ses arrêts en lecture seule, ses notes de frais, son fil de messages.
+  perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.tournees; if n <> 1 then raise exception 'ÉCHEC : le chauffeur voit % tournées (attendu 1, la sienne)', n; end if;
+  select count(*) into n from public.arrets;   if n <> 1 then raise exception 'ÉCHEC : le chauffeur voit % arrêts (attendu 1)', n; end if;
+  update public.arrets set adresse = 'Modifié' where tournee_id = ta; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : le chauffeur a modifié un arrêt'; end if;
+  update public.tournees set nom = 'Modifié' where id = ta; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : le chauffeur a modifié sa tournée'; end if;
+  delete from public.tournees where id = ta; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : le chauffeur a supprimé sa tournée'; end if;
+  select count(*) into n from public.profils_couts; if n <> 0 then raise exception 'ÉCHEC : le chauffeur voit les coûts'; end if;
+
+  insert into public.notes_frais (entreprise_id, nature, montant) values (ea, 'Carburant', 62.40) returning id into nc;
+  begin
+    insert into public.notes_frais (entreprise_id, user_id, nature, montant) values (ea, d, 'Repas', 15);
+    raise exception 'ÉCHEC : C a déposé une note au nom de D';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.notes_frais (entreprise_id, nature, montant, statut) values (ea, 'Repas', 15, 'validee');
+    raise exception 'ÉCHEC : C a déposé une note déjà validée';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.notes_frais (entreprise_id, nature, montant) values (eb, 'Repas', 15);
+    raise exception 'ÉCHEC : C a déposé une note chez B';
+  exception when insufficient_privilege or foreign_key_violation then null;
+  end;
+  update public.notes_frais set statut = 'validee' where id = nc; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : C a validé sa propre note'; end if;
+
+  insert into public.messages (entreprise_id, chauffeur_id, texte) values (ea, c, 'Bonjour');
+  begin
+    insert into public.messages (entreprise_id, chauffeur_id, texte) values (ea, d, 'Intrus');
+    raise exception 'ÉCHEC : C a écrit dans le fil de D';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.messages (entreprise_id, chauffeur_id, auteur_id, texte) values (ea, c, a, 'Faux');
+    raise exception 'ÉCHEC : C a écrit au nom du dirigeant';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.messages set texte = 'Modifié' where chauffeur_id = c;
+    raise exception 'ÉCHEC : un message a pu être modifié';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+
+  -- Chauffeur D : ne voit ni la tournée, ni la note, ni le fil de C.
+  perform set_config('request.jwt.claims', json_build_object('sub', d, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.tournees;    if n <> 0 then raise exception 'ÉCHEC : D voit la tournée de C'; end if;
+  select count(*) into n from public.arrets;      if n <> 0 then raise exception 'ÉCHEC : D voit les arrêts de C'; end if;
+  select count(*) into n from public.notes_frais; if n <> 0 then raise exception 'ÉCHEC : D voit la note de C'; end if;
+  select count(*) into n from public.messages;    if n <> 0 then raise exception 'ÉCHEC : D lit le fil de C'; end if;
+  delete from public.notes_frais where id = nc; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : D a retiré la note de C'; end if;
+  execute 'reset role';
+
+  -- Dirigeant A : voit la note et le fil, répond, valide ; ne peut pas retoucher un montant.
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.notes_frais; if n <> 1 then raise exception 'ÉCHEC : A voit % notes de frais (attendu 1)', n; end if;
+  select count(*) into n from public.messages;    if n <> 1 then raise exception 'ÉCHEC : A voit % messages (attendu 1)', n; end if;
+  insert into public.messages (entreprise_id, chauffeur_id, texte) values (ea, c, 'Bien reçu');
+  begin
+    update public.notes_frais set montant = 1 where id = nc;
+    raise exception 'ÉCHEC : le dirigeant a modifié le montant d''une note';
+  exception when insufficient_privilege then null;
+  end;
+  update public.notes_frais set statut = 'validee' where id = nc; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'ÉCHEC : le dirigeant ne peut pas valider une note'; end if;
+  execute 'reset role';
+
+  -- Dirigeant B : rien de tout cela.
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.notes_frais; if n <> 0 then raise exception 'ÉCHEC : B voit les notes de frais de A'; end if;
+  select count(*) into n from public.messages;    if n <> 0 then raise exception 'ÉCHEC : B lit les messages de A'; end if;
+  begin
+    insert into public.messages (entreprise_id, chauffeur_id, texte) values (ea, c, 'Intrus');
+    raise exception 'ÉCHEC : B a écrit dans un fil de A';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+
+  -- C ne peut plus retirer sa note une fois validée ; s'il quitte l'entreprise, sa tournée redevient libre.
+  perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  delete from public.notes_frais where id = nc; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ÉCHEC : C a retiré une note déjà validée'; end if;
+  execute 'reset role';
+  delete from public.membres where user_id = c;
+  select count(*) into n from public.tournees where id = ta and chauffeur_id is null and entreprise_id = ea;
+  if n <> 1 then raise exception 'ÉCHEC : la tournée n''a pas survécu au départ de son chauffeur'; end if;
+  select count(*) into n from public.notes_frais where user_id = c; if n <> 0 then raise exception 'ÉCHEC : les notes du chauffeur parti sont restées'; end if;
+
   -- 3. Visiteur non connecté : aucun accès.
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   execute 'set local role anon';
@@ -190,6 +301,16 @@ begin
   begin
     select count(*) into n from public.donneurs_ordre;
     raise exception 'ÉCHEC : un visiteur non connecté lit le carnet';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    select count(*) into n from public.messages;
+    raise exception 'ÉCHEC : un visiteur non connecté lit les messages';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    select count(*) into n from public.notes_frais;
+    raise exception 'ÉCHEC : un visiteur non connecté lit les notes de frais';
   exception when insufficient_privilege then null;
   end;
   begin

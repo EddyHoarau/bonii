@@ -224,8 +224,8 @@ function Section({ titre, sous, champs, s, changer, children }: { titre: string;
   );
 }
 
-export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, vehicules, echeances }: {
-  entreprise: string; admin: boolean; profil: Profil; donneurs: string[]; aRelancer: number;
+export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, aValider, vehicules, echeances }: {
+  entreprise: string; admin: boolean; profil: Profil; donneurs: string[]; aRelancer: number; aValider: number;
   vehicules: VehiculeChoix[]; echeances: number;
 }) {
   const vue = useVue();
@@ -259,6 +259,7 @@ export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, veh
         <Link className="lien" href="/tournees">Mes tournées</Link>
         <Link className="lien" href="/carnet">Mon carnet{aRelancer > 0 && <b title="Relances à faire">{aRelancer}</b>}</Link>
         <Link className="lien" href="/vehicules">Mes véhicules{echeances > 0 && <b title="Échéances proches ou dépassées">{echeances}</b>}</Link>
+        <Link className="lien" href="/equipe">Mon équipe{aValider > 0 && <b title="Notes de frais à valider">{aValider}</b>}</Link>
         <Link className="lien" href="/profil">Mes coûts</Link>
         {admin && <Link className="lien" href="/admin">Administration</Link>}
         <BoutonDeconnexion />

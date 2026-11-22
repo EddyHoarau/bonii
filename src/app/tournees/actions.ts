@@ -59,6 +59,16 @@ export async function supprimerTournee(form: FormData) {
   redirect("/tournees");
 }
 
+/** Confie la tournée à un chauffeur de l'entreprise, ou à personne. */
+export async function affecterChauffeur(form: FormData) {
+  const id = String(form.get("id") ?? ""), chauffeur = String(form.get("chauffeur") ?? "");
+  if (!FORMAT_ID.test(id) || (chauffeur && !FORMAT_ID.test(chauffeur))) return;
+  const { supabase } = await entrepriseDuDirigeant();
+  // RLS : seule une tournée de l'entreprise du dirigeant change ; la base refuse un chauffeur d'une autre entreprise.
+  await supabase.from("tournees").update({ chauffeur_id: chauffeur || null }).eq("id", id);
+  refresh();
+}
+
 /** Lit les adresses sur des photos déjà réduites par le navigateur. Rien n'est enregistré : le dirigeant vérifie d'abord. */
 export async function lirePhotos(form: FormData): Promise<{ adresses: string[] } | { erreur: string }> {
   const { entrepriseId } = await entrepriseDuDirigeant();

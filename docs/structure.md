@@ -79,9 +79,24 @@ Reste à faire : le prix du carburant autour d'un trajet à partir des données 
 et l'envoi des rappels par e-mail (aucun service d'envoi
 n'est branché ; les rappels ne s'affichent que dans l'application).
 
-## Lots suivants : prévus, pas construits
+## Lot 5 (construit) : accès chauffeur
 
-Chaque table future porte `entreprise_id` et suit les mêmes règles RLS.
+Le dirigeant ajoute ses chauffeurs dans « Mon équipe » (`/equipe`) : nom et adresse e-mail,
+connexion par lien comme lui. Aucun e-mail d'invitation ne part, c'est à lui de prévenir. Un
+compte ne peut appartenir qu'à une seule entreprise. Il confie une tournée à un chauffeur
+depuis la fiche de la tournée.
 
-- **Lot 5, accès chauffeur.** Le rôle « chauffeur » existe dès le lot 1 dans la table des
-  membres ; au lot 5 il ne verra que sa tournée, ses notes de frais et ses messages.
+En se connectant, le chauffeur arrive sur « Ma tournée » : ses tournées du jour et à venir,
+arrêt par arrêt, avec l'heure prévue et un bouton de guidage. Il dépose ses notes de frais
+(`/frais`), que le dirigeant valide ou refuse, et échange avec lui par messages (`/messages`).
+Il ne voit jamais les coûts, les simulations, le carnet ni les véhicules : ce sont les règles
+RLS qui le garantissent, pas les écrans. Migration : `0007_chauffeurs.sql`.
+
+Limites connues : pas de photo du ticket sur une note de frais, pas d'alerte à l'arrivée d'un
+message (il faut recharger la page), le chauffeur ne coche pas encore ses arrêts.
+
+## À faire ensuite
+
+- Prix du carburant autour d'un trajet, à partir des données publiques.
+- Un service d'envoi d'e-mails : invitations, rappels d'échéances et de relances, alertes de messages.
+- Premier essai réel de la lecture des photos et du calcul de l'ordre de passage (lot 2).
