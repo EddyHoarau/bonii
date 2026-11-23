@@ -5,12 +5,14 @@ import { BoutonSupprimer } from "@/components/BoutonSupprimer";
 import { membreConnecte } from "@/lib/supabase/serveur";
 import { FormulaireInvitationChauffeur, NouveauLienChauffeur } from "./FormulaireInvitationChauffeur";
 import { retirerChauffeur } from "./actions";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Mon équipe · Bonii" };
 
 export default function PageEquipe() {
   return (
     <div className="app">
+      <EntetePage titre="Mon équipe" sous="Un chauffeur ne voit que sa tournée, ses notes de frais et ses messages. Jamais vos coûts ni vos prix." />
       <Suspense><Contenu /></Suspense>
     </div>
   );
@@ -30,8 +32,6 @@ async function Contenu() {
   return (
     <>
       <section className="panel pad">
-        <h2>Mon équipe</h2>
-        <p className="sub">Un chauffeur ne voit que sa tournée, ses notes de frais et ses messages. Jamais vos coûts ni vos prix.</p>
         {chauffeurs.length === 0 ? (
           <p className="note vide">Aucun chauffeur pour l&apos;instant. Ajoutez le premier ci-dessous.</p>
         ) : (

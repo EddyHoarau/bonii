@@ -7,12 +7,14 @@ import { aujourdhuiParis, dateFr, delai, joursAvant, urgence } from "@/lib/echea
 import { IconeFait } from "@/lib/icones";
 import { FormulaireDonneur } from "./FormulaireDonneur";
 import { marquerRelanceFaite } from "./actions";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Mon carnet · Bonii" };
 
 export default function PageCarnet({ searchParams }: PageProps<"/carnet">) {
   return (
     <div className="app">
+      <EntetePage titre="Mon carnet" sous="Vos prospects et vos donneurs d&apos;ordre. Un nom tapé dans une simulation y entre tout seul." />
       <Suspense><Contenu searchParams={searchParams} /></Suspense>
     </div>
   );
@@ -69,8 +71,7 @@ async function Contenu({ searchParams }: { searchParams: PageProps<"/carnet">["s
       )}
 
       <section className="panel pad">
-        <h2>Mon carnet</h2>
-        <p className="sub">Vos prospects et vos donneurs d&apos;ordre. Un nom tapé dans une simulation y entre tout seul.</p>
+        <h2>Mes contacts</h2>
         <nav className="onglets filtres" aria-label="Filtrer par statut">
           <Link href="/carnet" aria-current={filtre ? undefined : "page"}>Tous</Link>
           {Object.entries(STATUTS_DONNEUR).map(([v, l]) => <Link key={v} href={"/carnet?statut=" + v} aria-current={filtre === v ? "page" : undefined}>{l}</Link>)}

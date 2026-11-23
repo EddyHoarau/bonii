@@ -6,6 +6,7 @@ import { clientSupabase } from "@/lib/supabase/serveur";
 import { CLES_COUTS_VEHICULE, COLONNES_VEHICULE, type CleCout, type Vehicule } from "@/lib/vehicules";
 import { FormulaireVehicule } from "../FormulaireVehicule";
 import { supprimerVehicule } from "../actions";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Véhicule · Bonii" };
 
@@ -35,9 +36,9 @@ async function Fiche({ searchParams }: { searchParams: PageProps<"/vehicules/fic
 
   return (
     <>
+      <EntetePage titre={vehicule.nom} sous="Échéances et coûts de ce véhicule. Dans le simulateur, choisissez-le pour chiffrer avec ses coûts." />
       <section className="panel pad">
-        <h2>{vehicule.nom}</h2>
-        <p className="sub">Échéances et coûts de ce véhicule. Dans le simulateur, choisissez-le pour chiffrer avec ses coûts.</p>
+        <h2>Échéances et coûts</h2>
         <FormulaireVehicule id={id} vehicule={vehicule} profil={profil ?? {}} />
       </section>
       <div className="actions">

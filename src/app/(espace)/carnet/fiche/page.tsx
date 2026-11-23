@@ -11,6 +11,7 @@ import { IconeFait } from "@/lib/icones";
 import { FormulaireDonneur } from "../FormulaireDonneur";
 import { FormulaireRelance } from "../FormulaireRelance";
 import { marquerRelanceFaite, supprimerDonneur } from "../actions";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Fiche · Bonii" };
 
@@ -50,9 +51,9 @@ async function Fiche({ searchParams }: { searchParams: PageProps<"/carnet/fiche"
 
   return (
     <>
+      <EntetePage titre={donneur.nom} sous="Coordonnées et notes de ce contact." />
       <section className="panel pad">
-        <h2>{donneur.nom}</h2>
-        <p className="sub">Coordonnées et notes de ce contact.</p>
+        <h2>Coordonnées</h2>
         <FormulaireDonneur id={id} donneur={donneur} />
       </section>
 

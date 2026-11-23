@@ -11,6 +11,7 @@ import { corrigerArret, supprimerArret, supprimerTournee } from "../actions";
 import { AjoutAdresses } from "./AjoutAdresses";
 import { BoutonOptimiser } from "./BoutonOptimiser";
 import { ChoixChauffeur } from "./ChoixChauffeur";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Tournée · Bonii" };
 // La lecture des photos et le calcul de l'ordre de passage peuvent prendre plusieurs dizaines de secondes.
@@ -51,9 +52,9 @@ async function Fiche({ searchParams }: { searchParams: PageProps<"/tournees/fich
 
   return (
     <>
+      <EntetePage titre={tournee.nom} sous={<>{dateFr(tournee.jour)}, départ à {tournee.heure_depart.slice(0, 5)} de {tournee.depart}. {nf1(tournee.minutes_par_arret)} min par arrêt.</>} />
       <section className="panel pad">
-        <h2>{tournee.nom}</h2>
-        <p className="sub">{dateFr(tournee.jour)}, départ à {tournee.heure_depart.slice(0, 5)} de {tournee.depart}. {nf1(tournee.minutes_par_arret)} min par arrêt.</p>
+        <h2>Chauffeur et arrêts</h2>
         {chauffeurs.length > 0 && <ChoixChauffeur tourneeId={id} chauffeurId={tournee.chauffeur_id} chauffeurs={chauffeurs} />}
         {arrets.length === 0 ? (
           <p className="note vide">Aucune adresse pour l&apos;instant. Ajoutez-les ci-dessous.</p>

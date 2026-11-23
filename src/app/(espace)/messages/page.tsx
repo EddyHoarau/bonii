@@ -4,6 +4,7 @@ import { membreConnecte } from "@/lib/supabase/serveur";
 import { dateFr } from "@/lib/echeances";
 import { heureParis } from "@/lib/tournees";
 import { FormulaireMessage } from "./FormulaireMessage";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Messages · Bonii" };
 
@@ -39,9 +40,8 @@ async function Contenu({ searchParams }: { searchParams: PageProps<"/messages">[
 
   return (
     <>
+      <EntetePage titre={dirigeant ? "Messages avec " + autre : "Messages avec votre dirigeant"} sous="Les nouveaux messages apparaissent en rechargeant la page. Aucune alerte n&apos;est envoyée." />
       <section className="panel pad">
-        <h2>{dirigeant ? "Messages avec " + autre : "Messages avec votre dirigeant"}</h2>
-        <p className="sub">Les nouveaux messages apparaissent en rechargeant la page. Aucune alerte n&apos;est envoyée.</p>
         {messages.length === 0 ? (
           <p className="note vide">Aucun message pour l&apos;instant.</p>
         ) : (

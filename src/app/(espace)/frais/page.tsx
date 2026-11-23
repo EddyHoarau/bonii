@@ -7,12 +7,14 @@ import { eur2 } from "@/lib/format";
 import { IconeFait, IconeSupprimer } from "@/lib/icones";
 import { FormulaireNote } from "./FormulaireNote";
 import { statuerNote, supprimerNote } from "./actions";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Notes de frais · Bonii" };
 
 export default function PageFrais() {
   return (
     <div className="app">
+      <EntetePage titre="Notes de frais" />
       <Suspense><Contenu /></Suspense>
     </div>
   );

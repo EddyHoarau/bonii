@@ -6,6 +6,7 @@ import { aujourdhuiParis, dateFr } from "@/lib/echeances";
 import { RETENTION_JOURS, dureeFr } from "@/lib/tournees";
 import { nf1 } from "@/lib/format";
 import { FormulaireTournee } from "./FormulaireTournee";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Mes tournées · Bonii" };
 // La création d'une tournée interroge le service d'adresses : on laisse le temps de répondre.
@@ -14,6 +15,7 @@ export const maxDuration = 30;
 export default function PageTournees() {
   return (
     <div className="app">
+      <EntetePage titre="Mes tournées" sous={<>Les adresses sont effacées {RETENTION_JOURS} jours après la date de la tournée.</>} />
       <Suspense><Contenu /></Suspense>
     </div>
   );
@@ -38,8 +40,6 @@ async function Contenu() {
   return (
     <>
       <section className="panel pad">
-        <h2>Mes tournées</h2>
-        <p className="sub">Les adresses sont effacées {RETENTION_JOURS} jours après la date de la tournée.</p>
         {tournees.length === 0 ? (
           <p className="note vide">Aucune tournée. Créez la première ci-dessous.</p>
         ) : (

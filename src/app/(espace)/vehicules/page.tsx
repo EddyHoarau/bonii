@@ -5,15 +5,27 @@ import { clientSupabase } from "@/lib/supabase/serveur";
 import { aujourdhuiParis, dateFr, delai, joursAvant, urgence } from "@/lib/echeances";
 import { ALERTE_ECHEANCE, CLES_COUTS_VEHICULE, COLONNES_VEHICULE, ECHEANCES, type CleCout, type Vehicule } from "@/lib/vehicules";
 import { FormulaireVehicule } from "./FormulaireVehicule";
+import { EntetePage } from "@/components/EntetePage";
 
 export const metadata = { title: "Mes véhicules · Bonii" };
 
 export default function PageVehicules() {
   return (
     <div className="app">
+      <EntetePage titre="Mes véhicules" sous="Les échéances passent à l&apos;orange 30 jours avant, au rouge une fois dépassées." />
       <Suspense><Contenu /></Suspense>
     </div>
   );
+}
+
+// La ligne prend la couleur de l'échéance la plus pressante (barre à gauche si orange ou rouge).
+const ORDRE = ["ok", "warn", "bad"] as const;
+function plusUrgente(v: Vehicule, aujourdhui: string) {
+  return ECHEANCES.reduce<(typeof ORDRE)[number]>((pire, [cle]) => {
+    const d = v[cle];
+    const u = d ? urgence(joursAvant(d, aujourdhui), ALERTE_ECHEANCE) : "ok";
+    return ORDRE.indexOf(u) > ORDRE.indexOf(pire) ? u : pire;
+  }, "ok");
 }
 
 async function Contenu() {
@@ -32,14 +44,12 @@ async function Contenu() {
   return (
     <>
       <section className="panel pad">
-        <h2>Mes véhicules</h2>
-        <p className="sub">Les échéances passent à l&apos;orange 30 jours avant, au rouge une fois dépassées.</p>
         {vehicules.length === 0 ? (
           <p className="note vide">Aucun véhicule. Ajoutez le premier ci-dessous.</p>
         ) : (
           <ul className="liste">
             {vehicules.map((v) => (
-              <li key={v.id} className="ligne">
+              <li key={v.id} className={"ligne etat-" + plusUrgente(v, aujourdhui)}>
                 <div className="ident">
                   <Link className="nom" href={"/vehicules/fiche?id=" + v.id}>{v.nom}</Link>
                   <span className="meta">{v.immatriculation ?? "Immatriculation non renseignée"}</span>
