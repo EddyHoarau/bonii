@@ -1,17 +1,21 @@
 "use server";
 
 import { headers } from "next/headers";
-import { clientAdmin } from "@/lib/supabase/admin";
+import { clientAdmin, compteExistant, compteParEmail, lienAcces } from "@/lib/supabase/admin";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
 
-export type EtatInvitation = { ok: boolean; message: string } | null;
+export type EtatInvitation = { ok: boolean; message: string; lien?: string; pour?: string } | null;
 
 const FORMAT_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function creerEntreprise(_: EtatInvitation, form: FormData): Promise<EtatInvitation> {
-  // Revérifié ici : une action serveur peut être appelée directement, sans passer par la page.
+// Revérifié dans chaque action : une action serveur peut être appelée directement, sans passer par la page.
+async function adminConnecte() {
   const { data } = await (await clientSupabase()).auth.getClaims();
-  if (!estAdmin(data?.claims?.email as string | undefined)) return { ok: false, message: "Accès refusé." };
+  return estAdmin(data?.claims?.email as string | undefined);
+}
+
+export async function creerEntreprise(_: EtatInvitation, form: FormData): Promise<EtatInvitation> {
+  if (!(await adminConnecte())) return { ok: false, message: "Accès refusé." };
 
   const nom = String(form.get("nom") ?? "").trim();
   const email = String(form.get("email") ?? "").trim().toLowerCase();
@@ -21,17 +25,10 @@ export async function creerEntreprise(_: EtatInvitation, form: FormData): Promis
   const admin = clientAdmin();
   const origine = (await headers()).get("origin") ?? "";
 
-  // 1. Le compte du dirigeant, créé sans e-mail (les modèles d'invitation de Supabase ne sont
-  //    modifiables qu'avec un service d'envoi branché). Il se connecte ensuite par lien sur /connexion.
-  let userId: string | undefined;
-  const cree = await admin.auth.admin.createUser({ email, email_confirm: true });
-  if (cree.data.user) userId = cree.data.user.id;
-  else if (cree.error?.code === "email_exists") {
-    // shortcut: recherche dans les 1 000 premiers comptes, à remplacer par une fonction SQL au-delà.
-    const { data: liste } = await admin.auth.admin.listUsers({ perPage: 1000 });
-    userId = liste?.users.find((u) => u.email?.toLowerCase() === email)?.id;
-  }
-  if (!userId) return { ok: false, message: "Le compte n'a pas pu être créé : " + (cree.error?.message ?? "compte introuvable") + "." };
+  // 1. Le compte du dirigeant, sans e-mail : on lui remet un lien d'accès à la main.
+  const compte = await compteParEmail(admin, email);
+  if ("erreur" in compte) return { ok: false, message: "Le compte n'a pas pu être créé : " + compte.erreur + "." };
+  const userId = compte.userId;
 
   // 2. L'entreprise, son dirigeant et son profil de coûts (valeurs d'exemple).
   const { data: ent, error: e1 } = await admin.from("entreprises").insert({ nom }).select("id").single();
@@ -43,8 +40,21 @@ export async function creerEntreprise(_: EtatInvitation, form: FormData): Promis
     return { ok: false, message: "Rattachement impossible : " + (e2 ?? e3)?.message };
   }
 
-  return {
-    ok: true,
-    message: `Entreprise « ${nom} » créée. Le dirigeant se connecte sur ${origine}/connexion avec l'adresse ${email} : il recevra son lien.`,
-  };
+  const lien = await lienAcces(admin, email, origine);
+  return lien
+    ? { ok: true, message: `Entreprise « ${nom} » créée.`, lien, pour: email }
+    : { ok: true, message: `Entreprise « ${nom} » créée, mais le lien d'accès n'a pas pu être fabriqué. Utilisez « Nouveau lien d'accès » ci-dessous.` };
+}
+
+/** Nouveau lien d'accès pour un compte existant (première connexion manquée, mot de passe oublié). */
+export async function nouveauLien(_: EtatInvitation, form: FormData): Promise<EtatInvitation> {
+  if (!(await adminConnecte())) return { ok: false, message: "Accès refusé." };
+  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  if (!FORMAT_EMAIL.test(email) || email.length > 254) return { ok: false, message: "Cette adresse e-mail ne semble pas valide." };
+
+  const admin = clientAdmin();
+  // On ne crée rien ici : seulement pour une adresse qui a déjà un compte.
+  if (!(await compteExistant(admin, email))) return { ok: false, message: "Aucun compte Bonii pour cette adresse." };
+  const lien = await lienAcces(admin, email, (await headers()).get("origin") ?? "");
+  return lien ? { ok: true, message: "Nouveau lien prêt.", lien, pour: email } : { ok: false, message: "Le lien n'a pas pu être fabriqué. Réessayez." };
 }
