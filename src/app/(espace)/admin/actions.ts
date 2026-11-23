@@ -29,6 +29,12 @@ export async function creerEntreprise(_: EtatInvitation, form: FormData): Promis
   const compte = await compteParEmail(admin, email);
   if ("erreur" in compte) return { ok: false, message: "Le compte n'a pas pu être créé : " + compte.erreur + "." };
   const userId = compte.userId;
+  // Un compte = une entreprise (comme pour les chauffeurs) : sinon un second envoi crée un doublon invisible pour son dirigeant.
+  const { data: deja } = await admin.from("membres").select("entreprises(nom)").eq("user_id", userId).limit(1).maybeSingle();
+  if (deja) {
+    const nomDeja = (deja.entreprises as unknown as { nom: string } | null)?.nom;
+    return { ok: false, message: `Cette adresse a déjà un accès à Bonii${nomDeja ? ` (entreprise « ${nomDeja} »)` : ""}. Rien n'a été créé. Pour un nouveau lien, utilisez « Nouveau lien d'accès » ci-dessous.` };
+  }
 
   // 2. L'entreprise, son dirigeant et son profil de coûts (valeurs d'exemple).
   const { data: ent, error: e1 } = await admin.from("entreprises").insert({ nom }).select("id").single();
