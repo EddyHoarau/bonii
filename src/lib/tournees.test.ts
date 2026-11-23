@@ -63,6 +63,7 @@ describe("ordre de passage", () => {
   const t = { jour: "2026-11-23", heure_depart: "08:00", minutes_par_arret: 2.5, depart_lat: 48.69, depart_lon: 6.18 };
   it("demande un véhicule qui part du dépôt et y revient, une livraison par arrêt", () => {
     const r = requeteOptimisation(t, [{ lat: 48.7, lon: 6.2 }, { lat: 48.68, lon: 6.17 }]);
+    expect(r.considerRoadTraffic).toBe(true);
     expect(r.model.shipments).toHaveLength(2);
     expect(r.model.shipments[1].deliveries[0]).toEqual({ arrivalLocation: { latitude: 48.68, longitude: 6.17 }, duration: "150s" });
     expect(r.model.vehicles[0].startLocation).toEqual(r.model.vehicles[0].endLocation);

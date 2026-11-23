@@ -106,6 +106,8 @@ export function requeteOptimisation(t: { jour: string; heure_depart: string; min
   const debut = instantParis(t.jour, t.heure_depart), depot = lieu({ lat: t.depart_lat, lon: t.depart_lon });
   return {
     timeout: "25s",
+    // L'ordre dépend de la circulation estimée par Google à l'heure du départ (le prix ne change pas : facturé par arrêt).
+    considerRoadTraffic: true,
     model: {
       shipments: arrets.map((a) => ({ deliveries: [{ arrivalLocation: lieu(a), duration: Math.round(t.minutes_par_arret * 60) + "s" }] })),
       // Le coût à l'heure fait chercher la tournée la plus courte en temps.
