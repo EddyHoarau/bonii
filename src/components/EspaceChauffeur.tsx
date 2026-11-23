@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { clientSupabase } from "@/lib/supabase/serveur";
+import { EntetePage } from "./EntetePage";
 import { aujourdhuiParis, dateFr } from "@/lib/echeances";
 import { lienGuidage } from "@/lib/equipe";
 import { IconeGuidage } from "@/lib/icones";
@@ -20,11 +20,9 @@ export async function EspaceChauffeur({ supabase, userId }: { supabase: Awaited<
 
   return (
     <>
-      <section className="panel pad">
-        <h2>Ma tournée</h2>
-        <p className="sub"><Link className="lien" href="/frais">Mes notes de frais</Link> · <Link className="lien" href="/messages">Messages</Link></p>
-        {tournees.length === 0 && <p className="note vide">Aucune tournée ne vous est confiée pour aujourd&apos;hui ni pour les jours à venir.</p>}
-      </section>
+      {/* Notes de frais et messages sont dans le menu (en bas sur téléphone). */}
+      <EntetePage titre="Ma tournée" sous="Vos arrêts, dans l'ordre de passage. « Y aller » ouvre le guidage." />
+      {tournees.length === 0 && <section className="panel pad"><p className="note vide">Aucune tournée ne vous est confiée pour aujourd&apos;hui ni pour les jours à venir.</p></section>}
       {tournees.map((x) => {
         const stops = arrets.filter((s) => s.tournee_id === x.id);
         return (
@@ -34,7 +32,7 @@ export async function EspaceChauffeur({ supabase, userId }: { supabase: Awaited<
             <ol className="liste arrets">
               {stops.map((s, i) => (
                 <li key={s.id} className="ligne etat-ok">
-                  <div className="ident"><span className="nom">{i + 1}. {s.adresse}</span></div>
+                  <div className="ident arret"><span className="numero" aria-hidden="true">{i + 1}</span><span className="nom"><span className="sr">Arrêt {i + 1} : </span>{s.adresse}</span></div>
                   <span className="echeance">{s.arrivee ? "Vers " + s.arrivee.slice(0, 5) : ""}</span>
                   {s.lat !== null && s.lon !== null
                     ? <a className="bouton" href={lienGuidage(s.lat, s.lon)} target="_blank" rel="noreferrer"><IconeGuidage />Y aller</a>
