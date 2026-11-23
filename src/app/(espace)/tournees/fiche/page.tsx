@@ -6,7 +6,8 @@ import { clientSupabase } from "@/lib/supabase/serveur";
 import { dateFr } from "@/lib/echeances";
 import { dureeFr } from "@/lib/tournees";
 import { nf1 } from "@/lib/format";
-import { IconeSupprimer } from "@/lib/icones";
+import { IconeGuidage, IconeSupprimer } from "@/lib/icones";
+import { lienGuidage } from "@/lib/equipe";
 import { corrigerArret, supprimerArret, supprimerTournee } from "../actions";
 import { AjoutAdresses } from "./AjoutAdresses";
 import { BoutonOptimiser } from "./BoutonOptimiser";
@@ -26,7 +27,7 @@ export default function PageFicheTournee({ searchParams }: PageProps<"/tournees/
 }
 
 type Tournee = { nom: string; jour: string; depart: string; heure_depart: string; minutes_par_arret: number; optimisee_le: string | null; km: number | null; duree_minutes: number | null; chauffeur_id: string | null };
-type Arret = { id: string; adresse: string; reconnue: string | null; lat: number | null; fiable: boolean; arrivee: string | null };
+type Arret = { id: string; adresse: string; reconnue: string | null; lat: number | null; lon: number | null; fiable: boolean; arrivee: string | null };
 
 async function Fiche({ searchParams }: { searchParams: PageProps<"/tournees/fiche">["searchParams"] }) {
   const { id } = await searchParams;
@@ -43,7 +44,7 @@ async function Fiche({ searchParams }: { searchParams: PageProps<"/tournees/fich
     return <section className="panel pad"><h2>Tournée introuvable</h2><p className="note">Elle a peut-être été effacée, comme toutes les tournées de plus de 7 jours. <Link className="lien" href="/tournees">Retour à mes tournées</Link></p></section>;
   }
   const [{ data }, { data: equipe }] = await Promise.all([
-    supabase.from("arrets").select("id, adresse, reconnue, lat, fiable, arrivee").eq("tournee_id", id).order("ordre").returns<Arret[]>(),
+    supabase.from("arrets").select("id, adresse, reconnue, lat, lon, fiable, arrivee").eq("tournee_id", id).order("ordre").returns<Arret[]>(),
     supabase.from("membres").select("user_id, nom").eq("role", "chauffeur").order("nom").returns<{ user_id: string; nom: string | null }[]>(),
   ]);
   const arrets = data ?? [], chauffeurs = equipe ?? [];
@@ -78,10 +79,16 @@ async function Fiche({ searchParams }: { searchParams: PageProps<"/tournees/fich
                       )}
                     </div>
                     <span className="echeance">{a.arrivee ? "Vers " + a.arrivee.slice(0, 5) : ""}</span>
-                    <form action={supprimerArret}>
-                      <input type="hidden" name="id" value={a.id} />
-                      <button type="submit" className="discret" aria-label={"Retirer l'adresse " + (i + 1)}><IconeSupprimer />Retirer</button>
-                    </form>
+                    <div className="actions">
+                      {/* Le dirigeant conduit souvent lui-même : même guidage que dans l'espace chauffeur. */}
+                      {a.lat !== null && a.lon !== null && (
+                        <a className="bouton" href={lienGuidage(a.lat, a.lon)} target="_blank" rel="noreferrer" aria-label={"Y aller : arrêt " + (i + 1)}><IconeGuidage />Y aller</a>
+                      )}
+                      <form action={supprimerArret}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <button type="submit" className="discret" aria-label={"Retirer l'adresse " + (i + 1)}><IconeSupprimer />Retirer</button>
+                      </form>
+                    </div>
                   </li>
                 );
               })}
