@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { BoutonSupprimer } from "@/components/BoutonSupprimer";
 import { membreConnecte } from "@/lib/supabase/serveur";
 import { FormulaireInvitationChauffeur, NouveauLienChauffeur } from "./FormulaireInvitationChauffeur";
@@ -13,8 +11,6 @@ export const metadata = { title: "Mon équipe · Bonii" };
 export default function PageEquipe() {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/">Retour au simulateur</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Contenu /></Suspense>
     </div>
   );

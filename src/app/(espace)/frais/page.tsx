@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { membreConnecte } from "@/lib/supabase/serveur";
 import { aujourdhuiParis, dateFr } from "@/lib/echeances";
 import { STATUTS_NOTE, type StatutNote } from "@/lib/equipe";
@@ -41,8 +38,6 @@ async function Contenu() {
 
   return (
     <>
-      <div className="compte"><Link className="lien" href={dirigeant ? "/equipe" : "/"}>{dirigeant ? "Retour à mon équipe" : "Retour à ma tournée"}</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
 
       {!dirigeant && (
         <section className="panel pad">

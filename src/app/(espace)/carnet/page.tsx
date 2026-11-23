@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { ALERTE_RELANCE, STATUTS_DONNEUR, estStatutDonneur, type StatutDonneur } from "@/lib/carnet";
 import { aujourdhuiParis, dateFr, delai, joursAvant, urgence } from "@/lib/echeances";
@@ -15,8 +13,6 @@ export const metadata = { title: "Mon carnet · Bonii" };
 export default function PageCarnet({ searchParams }: PageProps<"/carnet">) {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/">Retour au simulateur</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Contenu searchParams={searchParams} /></Suspense>
     </div>
   );

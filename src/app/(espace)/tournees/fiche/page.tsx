@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { BoutonSupprimer } from "@/components/BoutonSupprimer";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { dateFr } from "@/lib/echeances";
@@ -21,8 +19,6 @@ export const maxDuration = 60;
 export default function PageFicheTournee({ searchParams }: PageProps<"/tournees/fiche">) {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/tournees">Retour à mes tournées</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Fiche searchParams={searchParams} /></Suspense>
     </div>
   );

@@ -10,7 +10,9 @@ que ses propres données (règles RLS de Supabase sur toutes les tables).
 |---|---|
 | `prototype/` | Prototype validé, référence du moteur et du design. Ne pas modifier. |
 | `src/moteur/` | Moteur de calcul, sans interface ni réseau. Tests : `npm test`. |
-| `src/app/` | Écrans (Next.js, App Router). |
+| `src/app/` | Écrans (Next.js, App Router). Connexion, accès et mot de passe à la racine. |
+| `src/app/(espace)/` | Pages connectées, sous un cadre commun (`layout.tsx`) : menu de gauche sur ordinateur, onglets en bas sur téléphone. Le dossier entre parenthèses ne change pas les adresses. |
+| `src/lib/navigation.ts` | Rubriques du menu selon le rôle, rubrique active, fil d'Ariane. |
 | `src/components/` | Morceaux d'écran réutilisés. |
 | `src/lib/echeances.ts` | Dates et délais (relances, échéances), à l'heure de Paris. |
 | `src/lib/tournees.ts`, `src/lib/services.ts` | Tournée du jour : calculs sans réseau, et appels aux trois services. |

@@ -1,7 +1,8 @@
 // Seul fichier qui importe les icônes : Phosphor, trait fin (poids « light »).
 // Pour ajouter une icône, l'importer ici et l'exporter sous un nom français.
-import { ArrowCounterClockwise, Camera, Check, Columns, CopySimple, DownloadSimple, Envelope, FloppyDisk, Key, NavigationArrow, PaperPlaneRight, Path, Plus, SignOut, Trash } from "@phosphor-icons/react/ssr"; // variante sans contexte React : marche côté serveur et navigateur
+import { AddressBook, ArrowCounterClockwise, Calculator, ChatCircleText, Coins, DotsThreeOutline, Files, Receipt, ShieldCheck, Truck, UsersThree, X, Camera, Check, Columns, CopySimple, DownloadSimple, Envelope, FloppyDisk, Key, NavigationArrow, PaperPlaneRight, Path, Plus, SignOut, Trash } from "@phosphor-icons/react/ssr"; // variante sans contexte React : marche côté serveur et navigateur
 import type { IconProps } from "@phosphor-icons/react";
+import type { Icone } from "./navigation";
 
 const fin: IconProps = { weight: "light", size: 18, "aria-hidden": true };
 
@@ -20,3 +21,12 @@ export function IconePhoto(p: IconProps) { return <Camera {...fin} {...p} />; }
 export function IconeItineraire(p: IconProps) { return <Path {...fin} {...p} />; }
 export function IconeEnvoyer(p: IconProps) { return <PaperPlaneRight {...fin} {...p} />; }
 export function IconeGuidage(p: IconProps) { return <NavigationArrow {...fin} {...p} />; }
+export function IconePlus(p: IconProps) { return <DotsThreeOutline {...fin} {...p} />; }
+export function IconeFermer(p: IconProps) { return <X {...fin} {...p} />; }
+
+// Icônes du menu, par rubrique (voir src/lib/navigation.ts).
+const MENU: Record<Icone, typeof Calculator> = {
+  simulateur: Calculator, simulations: Files, couts: Coins, carnet: AddressBook, tournees: Path, vehicules: Truck,
+  equipe: UsersThree, frais: Receipt, messages: ChatCircleText, admin: ShieldCheck,
+};
+export function IconeMenu({ nom, ...p }: IconProps & { nom: Icone }) { const I = MENU[nom]; return <I {...fin} size={20} {...p} />; }

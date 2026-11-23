@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import type { Saisie } from "@/moteur";
 import { IconeEnregistrer } from "@/lib/icones";
 import { STATUTS, type TypeSimulation } from "@/lib/simulations";
-import { enregistrerSimulation } from "@/app/simulations/actions";
+import { enregistrerSimulation } from "@/app/(espace)/simulations/actions";
 
 /** Fige le calcul affiché : toutes les valeurs, coûts compris, telles qu'à cet instant. */
 export function FormulaireEnregistrement({ type, saisie, donneurs }: { type: TypeSimulation; saisie: Saisie; donneurs: string[] }) {

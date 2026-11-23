@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { aujourdhuiParis, dateFr, delai, joursAvant, urgence } from "@/lib/echeances";
 import { ALERTE_ECHEANCE, CLES_COUTS_VEHICULE, COLONNES_VEHICULE, ECHEANCES, type CleCout, type Vehicule } from "@/lib/vehicules";
@@ -13,8 +11,6 @@ export const metadata = { title: "Mes véhicules · Bonii" };
 export default function PageVehicules() {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/">Retour au simulateur</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Contenu /></Suspense>
     </div>
   );

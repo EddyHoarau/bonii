@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DEFAULTS, avec, course, seuilSur, tournee, type Ligne, type Saisie } from "@/moteur";
 import { eur, eur2, nf0, nf1, signe } from "@/lib/format";
@@ -10,8 +9,6 @@ import { classe, verdict } from "@/lib/simulations";
 import { CLES_COUTS_VEHICULE, coutsDuVehicule, type CleCout } from "@/lib/vehicules";
 import { FormulaireEnregistrement } from "./FormulaireEnregistrement";
 import { demarrerCarte, type Etat } from "./carte";
-import { Marque } from "./Marque";
-import { BoutonDeconnexion } from "./BoutonDeconnexion";
 
 type Cle = keyof Saisie;
 export type VehiculeChoix = { id: string; nom: string } & Record<CleCout, number | null>;
@@ -224,9 +221,8 @@ function Section({ titre, sous, champs, s, changer, children }: { titre: string;
   );
 }
 
-export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, aValider, vehicules, echeances }: {
-  entreprise: string; admin: boolean; profil: Profil; donneurs: string[]; aRelancer: number; aValider: number;
-  vehicules: VehiculeChoix[]; echeances: number;
+export function Simulateur({ profil, donneurs, vehicules }: {
+  profil: Profil; donneurs: string[]; vehicules: VehiculeChoix[];
 }) {
   const vue = useVue();
   // Point de départ : les valeurs d'exemple, remplacées par le profil de coûts enregistré.
@@ -253,19 +249,7 @@ export function Simulateur({ entreprise, admin, profil, donneurs, aRelancer, aVa
 
   return (
     <div className="app">
-      <div className="compte">
-        <span>{entreprise}</span>
-        <Link className="lien" href="/simulations">Mes simulations</Link>
-        <Link className="lien" href="/tournees">Mes tournées</Link>
-        <Link className="lien" href="/carnet">Mon carnet{aRelancer > 0 && <b title="Relances à faire">{aRelancer}</b>}</Link>
-        <Link className="lien" href="/vehicules">Mes véhicules{echeances > 0 && <b title="Échéances proches ou dépassées">{echeances}</b>}</Link>
-        <Link className="lien" href="/equipe">Mon équipe{aValider > 0 && <b title="Notes de frais à valider">{aValider}</b>}</Link>
-        <Link className="lien" href="/profil">Mes coûts</Link>
-        {admin && <Link className="lien" href="/admin">Administration</Link>}
-        <BoutonDeconnexion />
-      </div>
       <header className="top">
-        <Marque />
         <nav className="onglets" aria-label="Type de chiffrage">
           <a href="#tournee" aria-current={vue === "tournee" ? "page" : undefined}>Tournée en appel d&apos;offres</a>
           <a href="#course" aria-current={vue === "course" ? "page" : undefined}>Course au devis</a>

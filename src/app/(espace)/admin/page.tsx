@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
 import { FormulaireInvitation, FormulaireNouveauLien } from "./FormulaireInvitation";
 
@@ -11,8 +8,6 @@ export const metadata = { title: "Administration · Bonii" };
 export default function Admin() {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/">Retour au simulateur</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Formulaire /></Suspense>
     </div>
   );

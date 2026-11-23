@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { verdict } from "@/lib/simulations";
 import { chargerSimulations, lireIds, tableau } from "@/lib/comparaison";
@@ -13,8 +11,6 @@ export const metadata = { title: "Comparaison · Bonii" };
 export default function PageComparer({ searchParams }: PageProps<"/simulations/comparer">) {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/simulations">Retour à mes simulations</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Comparaison searchParams={searchParams} /></Suspense>
     </div>
   );

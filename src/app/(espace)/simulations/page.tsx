@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { STATUTS, TYPES, estStatut, lireSaisie, verdict, type Statut, type TypeSimulation } from "@/lib/simulations";
 import { course } from "@/moteur";
@@ -15,8 +13,6 @@ export const metadata = { title: "Mes simulations · Bonii" };
 export default function PageSimulations({ searchParams }: PageProps<"/simulations">) {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/">Retour au simulateur</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Liste searchParams={searchParams} /></Suspense>
     </div>
   );

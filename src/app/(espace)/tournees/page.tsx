@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { aujourdhuiParis, dateFr } from "@/lib/echeances";
 import { RETENTION_JOURS, dureeFr } from "@/lib/tournees";
@@ -16,8 +14,6 @@ export const maxDuration = 30;
 export default function PageTournees() {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/">Retour au simulateur</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Contenu /></Suspense>
     </div>
   );

@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { membreConnecte } from "@/lib/supabase/serveur";
 import { dateFr } from "@/lib/echeances";
 import { heureParis } from "@/lib/tournees";
@@ -42,8 +39,6 @@ async function Contenu({ searchParams }: { searchParams: PageProps<"/messages">[
 
   return (
     <>
-      <div className="compte"><Link className="lien" href={dirigeant ? "/equipe" : "/"}>{dirigeant ? "Retour à mon équipe" : "Retour à ma tournée"}</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <section className="panel pad">
         <h2>{dirigeant ? "Messages avec " + autre : "Messages avec votre dirigeant"}</h2>
         <p className="sub">Les nouveaux messages apparaissent en rechargeant la page. Aucune alerte n&apos;est envoyée.</p>

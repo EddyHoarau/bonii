@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { BoutonSupprimer } from "@/components/BoutonSupprimer";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { CLES_COUTS_VEHICULE, COLONNES_VEHICULE, type CleCout, type Vehicule } from "@/lib/vehicules";
@@ -14,8 +12,6 @@ export const metadata = { title: "Véhicule · Bonii" };
 export default function PageFicheVehicule({ searchParams }: PageProps<"/vehicules/fiche">) {
   return (
     <div className="app">
-      <div className="compte"><Link className="lien" href="/vehicules">Retour à mes véhicules</Link><BoutonDeconnexion /></div>
-      <header className="top"><Marque /></header>
       <Suspense><Fiche searchParams={searchParams} /></Suspense>
     </div>
   );

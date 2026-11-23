@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Marque } from "@/components/Marque";
 import { Simulateur } from "@/components/Simulateur";
-import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { EspaceChauffeur } from "@/components/EspaceChauffeur";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
 import { CLES_PROFIL, type Profil } from "@/lib/profil";
-import { aujourdhuiParis } from "@/lib/echeances";
-import { CLES_COUTS_VEHICULE, ECHEANCES, echeancesProches, type CleCout, type CleEcheance } from "@/lib/vehicules";
+import { CLES_COUTS_VEHICULE, type CleCout } from "@/lib/vehicules";
 
 export default function Accueil() {
   return (
-    <Suspense fallback={<div className="app"><header className="top"><Marque /></header></div>}>
+    <Suspense fallback={<div className="app" />}>
       <EspaceDirigeant />
     </Suspense>
   );
@@ -39,8 +36,6 @@ async function EspaceDirigeant() {
   if (membre && entreprise && membre.role === "chauffeur") {
     return (
       <div className="app">
-        <div className="compte"><span>{entreprise}</span><BoutonDeconnexion /></div>
-        <header className="top"><Marque /></header>
         <EspaceChauffeur supabase={supabase} userId={claims.sub as string} />
       </div>
     );
@@ -48,8 +43,6 @@ async function EspaceDirigeant() {
   if (!membre || !entreprise || membre.role !== "dirigeant") {
     return (
       <div className="app">
-        <div className="compte"><BoutonDeconnexion /></div>
-        <header className="top"><Marque /></header>
         <section className="panel pad">
           <h2>Votre compte n&apos;est rattaché à aucune entreprise</h2>
           <p className="sub">Demandez à votre dirigeant ou à votre cabinet de vous inviter.</p>
@@ -60,18 +53,12 @@ async function EspaceDirigeant() {
   }
 
   // RLS : le dirigeant ne lit que le profil de son entreprise. Sans profil, le simulateur garde les valeurs d'exemple.
-  const aujourdhui = aujourdhuiParis();
-  type LigneVehicule = { id: string; nom: string } & Record<CleCout, number | null> & Record<CleEcheance, string | null>;
-  const [{ data: profil }, { data: carnet }, { count: aRelancer }, { data: vehicules }, { count: aValider }] = await Promise.all([
+  // Les compteurs (relances, échéances, notes de frais) sont lus par le menu, dans (espace)/layout.tsx.
+  type LigneVehicule = { id: string; nom: string } & Record<CleCout, number | null>;
+  const [{ data: profil }, { data: carnet }, { data: vehicules }] = await Promise.all([
     supabase.from("profils_couts").select(CLES_PROFIL.join(", ")).maybeSingle<Profil>(),
     supabase.from("donneurs_ordre").select("nom").order("nom").returns<{ nom: string }[]>(),
-    // Relances prévues jusqu'à aujourd'hui et pas encore faites : le nombre s'affiche à côté de « Mon carnet ».
-    supabase.from("relances").select("id", { count: "exact", head: true }).is("faite_le", null).lte("prevue_le", aujourdhui),
-    supabase.from("vehicules").select(["id", "nom", ...CLES_COUTS_VEHICULE, ...ECHEANCES.map((e) => e[0])].join(", ")).order("nom").returns<LigneVehicule[]>(),
-    // Notes de frais en attente : le nombre s'affiche à côté de « Mon équipe ».
-    supabase.from("notes_frais").select("id", { count: "exact", head: true }).eq("statut", "a_valider"),
+    supabase.from("vehicules").select(["id", "nom", ...CLES_COUTS_VEHICULE].join(", ")).order("nom").returns<LigneVehicule[]>(),
   ]);
-  return <Simulateur entreprise={entreprise} admin={admin} profil={profil ?? {}} donneurs={(carnet ?? []).map((d) => d.nom)} aRelancer={aRelancer ?? 0} aValider={aValider ?? 0}
-    vehicules={(vehicules ?? []).map(({ id, nom, conso, vehicule, assurance, entretien }) => ({ id, nom, conso, vehicule, assurance, entretien }))}
-    echeances={echeancesProches(vehicules ?? [], aujourdhui)} />;
+  return <Simulateur profil={profil ?? {}} donneurs={(carnet ?? []).map((d) => d.nom)} vehicules={vehicules ?? []} />;
 }
