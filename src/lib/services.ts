@@ -1,10 +1,11 @@
 import "server-only";
-import { createSign } from "node:crypto";
+import { headers } from "next/headers";
 import { CONSIGNE_LECTURE, SCHEMA_LECTURE, lireGeocodage, lireLecture, type Position } from "@/lib/tournees";
 
 // Les trois services extérieurs du lot 2. Uniquement côté serveur : les clés ne vont jamais dans le navigateur.
 //   ANTHROPIC_API_KEY             lecture des photos (API Claude)
-//   GOOGLE_SERVICE_ACCOUNT_JSON   ordre de passage (Google Route Optimization), contenu du fichier de clé du compte de service
+//   GCP_PROJECT_NUMBER            ordre de passage (Google Route Optimization) : numéro du projet Google Cloud
+//   GCP_SERVICE_ACCOUNT_EMAIL     adresse du compte de service. Pas de fichier de clé : Vercel prouve l'identité de Bonii (OIDC).
 // Le géocodage (service public de l'IGN) n'a pas besoin de clé.
 
 const MODELE_LECTURE = "claude-haiku-5-5";
@@ -65,33 +66,47 @@ export async function geocoderTout(adresses: string[]): Promise<(Position | null
   }
 }
 
-const b64 = (v: string | Buffer) => Buffer.from(v).toString("base64url");
+const PORTEE_GOOGLE = "https://www.googleapis.com/auth/cloud-platform";
 
-/** Jeton d'accès Google à partir du compte de service (échange d'un jeton signé, méthode standard de Google). */
-async function jetonGoogle(compte: { client_email: string; private_key: string; token_uri?: string }) {
-  const maintenant = Math.floor(Date.now() / 1000), cible = compte.token_uri ?? "https://oauth2.googleapis.com/token";
-  const aSigner = b64(JSON.stringify({ alg: "RS256", typ: "JWT" })) + "." + b64(JSON.stringify({
-    iss: compte.client_email, scope: "https://www.googleapis.com/auth/cloud-platform", aud: cible, iat: maintenant, exp: maintenant + 600,
-  }));
-  const signature = createSign("RSA-SHA256").update(aSigner).sign(compte.private_key);
-  const reponse = await fetch(cible, {
+async function postJson(url: string, corps: unknown, jeton?: string) {
+  const reponse = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: aSigner + "." + b64(signature) }),
+    headers: { "content-type": "application/json", ...(jeton ? { authorization: "Bearer " + jeton } : {}) },
+    body: JSON.stringify(corps),
     signal: AbortSignal.timeout(10_000),
   });
-  if (!reponse.ok) throw new Error("jeton Google " + reponse.status + " " + (await reponse.text()).slice(0, 300));
-  return ((await reponse.json()) as { access_token: string }).access_token;
+  if (!reponse.ok) throw new Error(new URL(url).host + " " + reponse.status + " " + (await reponse.text()).slice(0, 300));
+  return reponse.json();
+}
+
+/**
+ * Jeton d'accès Google sans fichier de clé (fédération d'identité) : le badge que Vercel remet à chaque requête
+ * est échangé chez Google, qui laisse alors Bonii agir comme le compte de service le temps du calcul.
+ * Le pool et le fournisseur Google portent l'ID « vercel » ; seul Bonii en production y est admis (condition côté Google).
+ */
+async function jetonGoogle(numeroProjet: string, compteService: string) {
+  const badge = (await headers()).get("x-vercel-oidc-token") ?? process.env.VERCEL_OIDC_TOKEN;
+  if (!badge) throw new Error("badge Vercel (OIDC) absent : le calcul ne marche que sur Vercel");
+  const federe = (await postJson("https://sts.googleapis.com/v1/token", {
+    grantType: "urn:ietf:params:oauth:grant-type:token-exchange",
+    audience: "//iam.googleapis.com/projects/" + numeroProjet + "/locations/global/workloadIdentityPools/vercel/providers/vercel",
+    scope: PORTEE_GOOGLE,
+    requestedTokenType: "urn:ietf:params:oauth:token-type:access_token",
+    subjectTokenType: "urn:ietf:params:oauth:token-type:jwt",
+    subjectToken: badge,
+  })) as { access_token: string };
+  const compte = (await postJson("https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + encodeURIComponent(compteService) + ":generateAccessToken",
+    { scope: [PORTEE_GOOGLE], lifetime: "600s" }, federe.access_token)) as { accessToken: string };
+  return compte.accessToken;
 }
 
 /** Envoie la demande d'ordre de passage à Google. Renvoie la réponse brute (à lire avec lireOptimisation), ou le message à afficher. */
 export async function ordreDePassage(requete: unknown): Promise<{ reponse: unknown } | { erreur: string }> {
-  const brut = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!brut) return { erreur: "Le calcul de l'ordre de passage n'est pas encore branché (clé GOOGLE_SERVICE_ACCOUNT_JSON absente)." };
+  const numeroProjet = process.env.GCP_PROJECT_NUMBER?.trim(), compteService = process.env.GCP_SERVICE_ACCOUNT_EMAIL?.trim();
+  if (!numeroProjet || !compteService) return { erreur: "Le calcul de l'ordre de passage n'est pas encore branché (réglages GCP_PROJECT_NUMBER et GCP_SERVICE_ACCOUNT_EMAIL absents)." };
   try {
-    const compte = JSON.parse(brut) as { client_email: string; private_key: string; project_id: string; token_uri?: string };
-    const jeton = await jetonGoogle(compte);
-    const reponse = await fetch("https://routeoptimization.googleapis.com/v1/projects/" + encodeURIComponent(compte.project_id) + ":optimizeTours", {
+    const jeton = await jetonGoogle(numeroProjet, compteService);
+    const reponse = await fetch("https://routeoptimization.googleapis.com/v1/projects/" + encodeURIComponent(numeroProjet) + ":optimizeTours", {
       method: "POST",
       headers: { authorization: "Bearer " + jeton, "content-type": "application/json" },
       body: JSON.stringify(requete),
@@ -104,6 +119,6 @@ export async function ordreDePassage(requete: unknown): Promise<{ reponse: unkno
     return { reponse: await reponse.json() };
   } catch (e) {
     console.error("Ordre de passage :", e instanceof Error ? e.message : e);
-    return { erreur: "Le service de calcul ne répond pas, ou sa clé est mal renseignée." };
+    return { erreur: "Le service de calcul ne répond pas, ou son branchement à Google est incomplet." };
   }
 }

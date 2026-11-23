@@ -47,7 +47,7 @@ moteur existant, jamais par un algorithme maison. Migration : `0006_tournees.sql
 |---|---|---|
 | Lire les photos | API Claude, modèle Haiku | `ANTHROPIC_API_KEY` |
 | Placer les adresses | Géocodage public de l'IGN | aucune |
-| Ordre de passage | Google Route Optimization | `GOOGLE_SERVICE_ACCOUNT_JSON` |
+| Ordre de passage | Google Route Optimization | `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL` (sans clé : fédération d'identité Vercel OIDC) |
 
 Sans clé, le lot marche quand même en saisie à la main, sans calcul de l'ordre. Le code de
 ces appels est dans `src/lib/services.ts` ; tout ce qui se calcule sans réseau (et se teste)
