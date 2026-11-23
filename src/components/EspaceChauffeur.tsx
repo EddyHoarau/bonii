@@ -1,5 +1,6 @@
 import type { clientSupabase } from "@/lib/supabase/serveur";
 import { EntetePage } from "./EntetePage";
+import { GuidageTournee } from "./GuidageTournee";
 import { aujourdhuiParis, dateFr } from "@/lib/echeances";
 import { lienGuidage } from "@/lib/equipe";
 import { IconeGuidage } from "@/lib/icones";
@@ -29,6 +30,7 @@ export async function EspaceChauffeur({ supabase, userId }: { supabase: Awaited<
           <section className="panel pad" key={x.id}>
             <h2>{x.nom}</h2>
             <p className="sub">{x.jour === aujourdhui ? "Aujourd'hui" : dateFr(x.jour)}, départ à {x.heure_depart.slice(0, 5)} de {x.depart}. {stops.length} {stops.length > 1 ? "arrêts" : "arrêt"}{x.optimisee_le ? "." : ", ordre de passage pas encore calculé."}</p>
+            <GuidageTournee arrets={stops} />
             <ol className="liste arrets">
               {stops.map((s, i) => (
                 <li key={s.id} className="ligne etat-ok">

@@ -13,6 +13,7 @@ import { AjoutAdresses } from "./AjoutAdresses";
 import { BoutonOptimiser } from "./BoutonOptimiser";
 import { ChoixChauffeur } from "./ChoixChauffeur";
 import { EntetePage } from "@/components/EntetePage";
+import { GuidageTournee } from "@/components/GuidageTournee";
 
 export const metadata = { title: "Tournée · Bonii" };
 // La lecture des photos et le calcul de l'ordre de passage peuvent prendre plusieurs dizaines de secondes.
@@ -62,6 +63,7 @@ async function Fiche({ searchParams }: { searchParams: PageProps<"/tournees/fich
         ) : (
           <>
             <p className="note">{resume}{tournee.optimisee_le ? "." : ". L'ordre de passage n'est pas calculé."}{aVerifier > 0 && " " + aVerifier + (aVerifier > 1 ? " adresses à vérifier." : " adresse à vérifier.")}</p>
+            <GuidageTournee arrets={arrets} />
             <ol className="liste arrets">
               {arrets.map((a, i) => {
                 const etat = a.lat === null ? "bad" : a.fiable ? "ok" : "warn";

@@ -38,3 +38,22 @@ export function lireInvitation(lire: (cle: string) => string): { nom: string; em
 
 /** Lien qui ouvre le guidage vers un point dans Google Maps (application ou site). */
 export const lienGuidage = (lat: number, lon: number) => "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon;
+
+/** Google Maps accepte 9 étapes plus l'arrivée par lien (doc « Maps URLs ») : la tournée part par paquets de 10. */
+export const ARRETS_PAR_LIEN = 10;
+
+/**
+ * Liens qui ouvrent la tournée dans Google Maps, 10 arrêts à la fois, dans l'ordre donné, en partant de la position du téléphone.
+ * Les arrêts sans position sont sautés ; `de` et `a` sont les numéros affichés dans la liste (à partir de 1).
+ */
+export function liensTournee(arrets: { lat: number | null; lon: number | null }[]) {
+  const places = arrets.flatMap((a, i) => (a.lat !== null && a.lon !== null ? [{ n: i + 1, point: a.lat + "," + a.lon }] : []));
+  const liens: { de: number; a: number; href: string }[] = [];
+  for (let i = 0; i < places.length; i += ARRETS_PAR_LIEN) {
+    const paquet = places.slice(i, i + ARRETS_PAR_LIEN), fin = paquet[paquet.length - 1];
+    const params = new URLSearchParams({ api: "1", destination: fin.point, travelmode: "driving" });
+    if (paquet.length > 1) params.set("waypoints", paquet.slice(0, -1).map((p) => p.point).join("|"));
+    liens.push({ de: paquet[0].n, a: fin.n, href: "https://www.google.com/maps/dir/?" + params });
+  }
+  return liens;
+}

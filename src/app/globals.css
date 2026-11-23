@@ -202,6 +202,7 @@ a.bouton:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; 
 .echeances { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; text-align: right; grid-column: 2 / -1; }
 .choix-vehicule { max-width: 360px; margin-bottom: 14px; }
 .liste.arrets { margin-top: 12px; }
+.guidage-tournee { display: grid; gap: 8px; margin-top: 12px; }
 .correction { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
 .correction .box { flex: 1; min-width: 200px; }
 .correction .box input { font-size: 15px; font-weight: 500; padding: 7px 10px; }
