@@ -99,10 +99,10 @@ export function demarrerCarte(cv: HTMLCanvasElement) {
     for (let k = 1; k < P.length - 1; k++) {
       const on = len[k] <= reach, bad = scene.fail[k];
       cx.beginPath(); cx.arc(P[k][0], P[k][1], scene.single ? 7 : 4, 0, 6.283);
-      cx.fillStyle = on ? (bad ? "#090c10" : "#f1f3f5") : "rgba(255,255,255,.25)"; cx.fill();
+      cx.fillStyle = on ? (bad ? "#1d1638" : "#f1f3f5") : "rgba(255,255,255,.25)"; cx.fill();
       if (on && bad) { cx.lineWidth = 2; cx.strokeStyle = COL.bad; cx.stroke(); }
     }
-    cx.fillStyle = "#ffd23f"; cx.shadowColor = "#ffd23f"; cx.shadowBlur = 18;
+    cx.fillStyle = "#b8a4ff"; cx.shadowColor = "#b8a4ff"; cx.shadowBlur = 18;
     cx.fillRect(P[0][0] - 7, P[0][1] - 7, 14, 14); cx.shadowBlur = 0;
     cx.fillStyle = "rgba(241,243,245,.75)"; cx.font = "600 12px 'Albert Sans',sans-serif"; cx.fillText("Dépôt", P[0][0] - 16, P[0][1] + (H < 360 ? -14 : 26)); // carte basse (téléphone) : au-dessus, pour ne pas toucher la légende
     if (!calm && draw >= 1) {
@@ -111,8 +111,8 @@ export function demarrerCarte(cv: HTMLCanvasElement) {
       while (m < len.length - 1 && len[m] < d) m++;
       const u = (d - len[m - 1]) / (len[m] - len[m - 1] || 1), vx = P[m - 1][0] + (P[m][0] - P[m - 1][0]) * u, vy = P[m - 1][1] + (P[m][1] - P[m - 1][1]) * u;
       const pulse = 9 + Math.sin(now / 260) * 3;
-      cx.beginPath(); cx.arc(vx, vy, pulse + 6, 0, 6.283); cx.fillStyle = "rgba(255,210,63,.16)"; cx.fill();
-      cx.beginPath(); cx.arc(vx, vy, 5.5, 0, 6.283); cx.fillStyle = "#ffd23f"; cx.shadowColor = "#ffd23f"; cx.shadowBlur = 20; cx.fill(); cx.shadowBlur = 0;
+      cx.beginPath(); cx.arc(vx, vy, pulse + 6, 0, 6.283); cx.fillStyle = "rgba(184,164,255,.2)"; cx.fill();
+      cx.beginPath(); cx.arc(vx, vy, 5.5, 0, 6.283); cx.fillStyle = "#b8a4ff"; cx.shadowColor = "#b8a4ff"; cx.shadowBlur = 20; cx.fill(); cx.shadowBlur = 0;
     }
     if (!calm || draw < 1) relancer();
   }

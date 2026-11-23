@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EntetePage } from "@/components/EntetePage";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { clientSupabase } from "@/lib/supabase/serveur";
@@ -24,20 +25,22 @@ async function Comparaison({ searchParams }: { searchParams: PageProps<"/simulat
 
   if (choisis.length === 0 || choisis.length > 3) {
     return (
+      <>
+      <EntetePage titre="Comparaison" />
       <section className="panel pad">
-        <h2>Comparaison</h2>
         <p className="note">{choisis.length > 3 ? "Choisissez 3 simulations au plus." : "Choisissez 2 ou 3 simulations dans la liste."} <Link className="lien" href="/simulations">Retour à mes simulations</Link></p>
       </section>
+      </>
     );
   }
 
   const sims = await chargerSimulations(supabase, choisis);
-  if (sims.length === 0) return <section className="panel pad"><h2>Comparaison</h2><p className="note">Simulation introuvable.</p></section>;
+  if (sims.length === 0) return <><EntetePage titre="Comparaison" /><section className="panel pad"><p className="note">Simulation introuvable.</p></section></>;
 
   return (
+    <>
+    <EntetePage titre={sims.length === 1 ? sims[0].nom : "Comparaison"} sous="Chiffres figés au jour de l'enregistrement." />
     <section className="panel pad">
-      <h2>{sims.length === 1 ? sims[0].nom : "Comparaison"}</h2>
-      <p className="sub">Chiffres figés au jour de l&apos;enregistrement.</p>
       <table className="comparaison">
         <thead>
           <tr>
@@ -61,5 +64,6 @@ async function Comparaison({ searchParams }: { searchParams: PageProps<"/simulat
         <span className="note">Document interne : il montre votre marge.</span>
       </div>
     </section>
+    </>
   );
 }

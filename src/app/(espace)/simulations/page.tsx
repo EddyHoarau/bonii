@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { EntetePage } from "@/components/EntetePage";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { clientSupabase } from "@/lib/supabase/serveur";
 import { STATUTS, TYPES, estStatut, lireSaisie, verdict, type Statut, type TypeSimulation } from "@/lib/simulations";
 import { course } from "@/moteur";
 import { eur, signe } from "@/lib/format";
-import { IconeComparer } from "@/lib/icones";
+import { IconeComparer, IconeMenu } from "@/lib/icones";
 import { ChoixStatut } from "./ChoixStatut";
 
 export const metadata = { title: "Mes simulations · Bonii" };
@@ -13,6 +14,7 @@ export const metadata = { title: "Mes simulations · Bonii" };
 export default function PageSimulations({ searchParams }: PageProps<"/simulations">) {
   return (
     <div className="app">
+      <EntetePage titre="Mes simulations" sous="Cochez 2 ou 3 simulations pour les comparer. Cliquez sur un nom pour revoir ses chiffres." />
       <Suspense><Liste searchParams={searchParams} /></Suspense>
     </div>
   );
@@ -38,8 +40,6 @@ async function Liste({ searchParams }: { searchParams: PageProps<"/simulations">
 
   return (
     <section className="panel pad">
-      <h2>Mes simulations</h2>
-      <p className="sub">Cochez 2 ou 3 simulations pour les comparer. Cliquez sur un nom pour revoir ses chiffres.</p>
       <nav className="onglets filtres" aria-label="Filtrer par statut">
         <Link href="/simulations" aria-current={filtre ? undefined : "page"}>Toutes</Link>
         {Object.entries(STATUTS).map(([v, l]) => <Link key={v} href={"/simulations?statut=" + v} aria-current={filtre === v ? "page" : undefined}>{l}</Link>)}
@@ -59,6 +59,7 @@ async function Liste({ searchParams }: { searchParams: PageProps<"/simulations">
               return (
                 <li key={l.id} className={"sim etat-" + (v?.cls ?? "warn")}>
                   <input type="checkbox" name="ids" value={l.id} form="comparer" aria-label={"Comparer " + l.nom} />
+                  <span className="pastille-type" aria-hidden="true"><IconeMenu nom={l.type === "tournee" ? "tournees" : "simulateur"} /></span>
                   <div className="ident">
                     <Link className="nom" href={"/simulations/comparer?ids=" + l.id}>{l.nom}</Link>
                     <span className="meta">{[TYPES[l.type], l.donneur_ordre, dateFr(l.date_simulation)].filter(Boolean).join(", ")}</span>

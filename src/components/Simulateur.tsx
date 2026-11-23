@@ -7,6 +7,7 @@ import { IconeCopier, IconeRetablir } from "@/lib/icones";
 import { COUTS, JOURS, type DefChamp, type Profil } from "@/lib/profil";
 import { classe, verdict } from "@/lib/simulations";
 import { CLES_COUTS_VEHICULE, coutsDuVehicule, type CleCout } from "@/lib/vehicules";
+import { EntetePage } from "./EntetePage";
 import { FormulaireEnregistrement } from "./FormulaireEnregistrement";
 import { demarrerCarte, type Etat } from "./carte";
 
@@ -249,12 +250,12 @@ export function Simulateur({ profil, donneurs, vehicules }: {
 
   return (
     <div className="app">
-      <header className="top">
+      <EntetePage titre="Simulateur" sous="Savoir si une tournée rapporte, avant de la signer.">
         <nav className="onglets" aria-label="Type de chiffrage">
           <a href="#tournee" aria-current={vue === "tournee" ? "page" : undefined}>Tournée en appel d&apos;offres</a>
           <a href="#course" aria-current={vue === "course" ? "page" : undefined}>Course au devis</a>
         </nav>
-      </header>
+      </EntetePage>
 
       <section className="hero">
         <Carte scene={a.scene} etat={v.cls} chips={a.chips} legende={a.legende} />
@@ -281,7 +282,8 @@ export function Simulateur({ profil, donneurs, vehicules }: {
               <label htmlFor={"lv-" + k}>{libelle}</label>
               <output htmlFor={"lv-" + k}>{nf1(s[k]) + suffixe}</output>
             </div>
-            <input id={"lv-" + k} type="range" min={min} max={max} step={pas} value={s[k]} onChange={(e) => changer(k, parseFloat(e.target.value))} />
+            <input id={"lv-" + k} type="range" min={min} max={max} step={pas} value={s[k]} onChange={(e) => changer(k, parseFloat(e.target.value))}
+              style={{ "--p": (Math.min(1, Math.max(0, (s[k] - min) / (max - min))) * 100).toFixed(1) + "%" } as React.CSSProperties} />
           </div>
         ))}
       </section>
@@ -329,7 +331,7 @@ export function Simulateur({ profil, donneurs, vehicules }: {
             </div>
           </section>
           {a.sens && (
-            <section className="panel pad">
+            <section className="panel pad sens-carte">
               <h2>Si les volumes ou le prix bougent</h2>
               <p className="sub">Marge mensuelle selon les points livrés par jour et le prix au point. La case encadrée est votre hypothèse.</p>
               <table className="sens">
