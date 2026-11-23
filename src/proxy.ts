@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIQUES = ["/connexion", "/auth/"];
+const PUBLIQUES = ["/connexion", "/acces"];
 
 // Rafraîchit la session à chaque page (méthode officielle Supabase) et renvoie vers
 // /connexion si personne n'est connecté. Chaque page revérifie elle-même : ceci n'est qu'un aiguillage.

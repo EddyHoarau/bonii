@@ -5,7 +5,7 @@ import { Marque } from "@/components/Marque";
 import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { BoutonSupprimer } from "@/components/BoutonSupprimer";
 import { membreConnecte } from "@/lib/supabase/serveur";
-import { FormulaireInvitationChauffeur } from "./FormulaireInvitationChauffeur";
+import { FormulaireInvitationChauffeur, NouveauLienChauffeur } from "./FormulaireInvitationChauffeur";
 import { retirerChauffeur } from "./actions";
 
 export const metadata = { title: "Mon équipe · Bonii" };
@@ -41,9 +41,10 @@ async function Contenu() {
         ) : (
           <ul className="liste">
             {chauffeurs.map((c) => (
-              <li key={c.user_id} className="ligne">
+              <li key={c.user_id} className="ligne equipe">
                 <div className="ident"><span className="nom">{c.nom ?? "Chauffeur"}</span></div>
                 <Link className="lien" href={"/messages?avec=" + c.user_id}>Messages</Link>
+                <NouveauLienChauffeur id={c.user_id} nom={c.nom ?? "ce chauffeur"} />
                 <BoutonSupprimer action={retirerChauffeur} id={c.user_id} libelle="Retirer" question={"Retirer " + (c.nom ?? "ce chauffeur") + " de l'équipe ? Ses notes de frais et ses messages seront effacés."} />
               </li>
             ))}
@@ -54,7 +55,7 @@ async function Contenu() {
 
       <section className="panel pad">
         <h2>Ajouter un chauffeur</h2>
-        <p className="sub">Il se connectera avec son adresse e-mail, par lien, comme vous. Aucun e-mail d&apos;invitation ne part : prévenez-le.</p>
+        <p className="sub">Bonii fabrique un lien d&apos;accès : envoyez-le au chauffeur par SMS ou WhatsApp. Il y choisira son mot de passe. Aucun e-mail ne part.</p>
         <FormulaireInvitationChauffeur />
       </section>
     </>

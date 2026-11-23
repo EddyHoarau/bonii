@@ -161,6 +161,11 @@ a.bouton { display: inline-flex; align-items: center; gap: 8px; font: 600 14.5px
 a.bouton:hover { background: #ffdc63; }
 a.bouton:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .apres-tableau { margin-top: 18px; }
+.lien-acces { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--accent); border-radius: 14px; background: rgba(255, 210, 63, 0.06); }
+.lien-acces .box input { font-size: 13px; font-weight: 500; }
+.ligne.equipe { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.equipe .nouveau-lien { display: contents; }
+.equipe .lien-acces, .equipe .nouveau-lien .alerte { grid-column: 1 / -1; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* Carnet et véhicules : une ligne par fiche, l'échéance prend la couleur de son urgence. */
@@ -205,7 +210,7 @@ button.danger { color: var(--bad); }
   .sens thead th:first-child { white-space: normal; text-align: left; }
   .sens .eur { display: none; }
   .scale span:last-child { transform: none; } /* le libellé part de son repère au lieu d'être centré dessus */
-  .ligne { grid-template-columns: minmax(0, 1fr); }
+  .ligne, .ligne.equipe { grid-template-columns: minmax(0, 1fr); }
   .ligne .resultat { justify-content: flex-start; }
   .etiquette { justify-self: start; }
   .echeances { grid-column: 1; align-items: flex-start; text-align: left; }

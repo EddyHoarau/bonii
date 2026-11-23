@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Marque } from "@/components/Marque";
 import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { clientSupabase, estAdmin } from "@/lib/supabase/serveur";
-import { FormulaireInvitation } from "./FormulaireInvitation";
+import { FormulaireInvitation, FormulaireNouveauLien } from "./FormulaireInvitation";
 
 export const metadata = { title: "Administration · Bonii" };
 
@@ -23,10 +23,17 @@ async function Formulaire() {
   const { data } = await (await clientSupabase()).auth.getClaims();
   if (!estAdmin(data?.claims?.email as string | undefined)) notFound();
   return (
-    <section className="panel pad connexion">
-      <h2>Nouvelle entreprise</h2>
-      <p className="sub">Crée l&apos;entreprise et le compte de son dirigeant. Prévenez-le ensuite : il se connecte avec son adresse e-mail, sans mot de passe.</p>
-      <FormulaireInvitation />
-    </section>
+    <>
+      <section className="panel pad connexion">
+        <h2>Nouvelle entreprise</h2>
+        <p className="sub">Crée l&apos;entreprise et le compte de son dirigeant, puis affiche son lien d&apos;accès. Envoyez-le-lui : il choisira son mot de passe.</p>
+        <FormulaireInvitation />
+      </section>
+      <section className="panel pad connexion">
+        <h2>Nouveau lien d&apos;accès</h2>
+        <p className="sub">Mot de passe oublié, ou lien expiré : fabriquez-en un nouveau pour un compte existant (dirigeant ou chauffeur).</p>
+        <FormulaireNouveauLien />
+      </section>
+    </>
   );
 }
